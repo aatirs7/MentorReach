@@ -1,0 +1,173 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+@import "shadcn/tailwind.css";
+
+@custom-variant dark (&:is(.dark *));
+
+/* ==========================================================================
+   Trajectory Coaching — brand (spec §1). "Own your trajectory."
+   Warm, editorial, generous whitespace, soft corners, no heavy shadows.
+   Not a SaaS-dashboard look.
+
+   THE ARCHITECTURE, AND WHY IT MATTERS:
+   The five brand hexes are declared ONCE in :root. Every shadcn semantic token is
+   an ALIAS of a brand token. That is what makes §1's "apply platform-wide, not just
+   homepage" structurally true rather than a convention someone has to remember: a
+   shadcn <Button> is ink-on-paper because --primary IS --ink, not because someone
+   added a class. There is exactly one place to change the palette.
+
+   Do not hardcode a brand hex anywhere else in the app.
+
+   Dark mode is deliberately out of scope (§1 says ivory, warm, editorial). The
+   @custom-variant above is retained so adding it later is a `.dark { }` block rather
+   than a refactor. The scaffold's prefers-color-scheme block was REMOVED — it would
+   have flipped the background to near-black for any visitor with a dark OS theme,
+   which directly contradicts §1.
+   ========================================================================== */
+
+:root {
+  /* --- The brand. Spec §1. Source of truth. ------------------------------ */
+  --ink: #0e1826; /* dark navy — headings, primary */
+  --paper: #f6f3ec; /* ivory — background */
+  --gold: #c89b3c; /* accent */
+  --slate: #5b6472; /* muted text */
+  --line: #2e4057; /* borders */
+
+  /* --- shadcn semantic tokens, remapped onto the brand ------------------- */
+  --background: var(--paper);
+  --foreground: var(--ink);
+
+  /* Cards sit on paper, separated by rules rather than shadows (§1). */
+  --card: var(--paper);
+  --card-foreground: var(--ink);
+  --popover: var(--paper);
+  --popover-foreground: var(--ink);
+
+  --primary: var(--ink);
+  --primary-foreground: var(--paper);
+
+  /* Derived via color-mix so the palette still has exactly ONE source. */
+  --secondary: color-mix(in oklab, var(--ink) 6%, var(--paper));
+  --secondary-foreground: var(--ink);
+  --muted: color-mix(in oklab, var(--ink) 5%, var(--paper));
+  --muted-foreground: var(--slate);
+
+  --accent: var(--gold);
+  --accent-foreground: var(--ink);
+
+  /*
+   * Functional, not brand — §1 defines no error color. Warm brick rather than a
+   * stock red so it doesn't fight the ivory. Revisit if brand supplies one.
+   */
+  --destructive: #a03a2b;
+
+  --border: var(--line);
+  --input: var(--line);
+  --ring: var(--gold);
+
+  --chart-1: var(--gold);
+  --chart-2: var(--line);
+  --chart-3: var(--slate);
+  --chart-4: color-mix(in oklab, var(--gold) 55%, var(--paper));
+  --chart-5: var(--ink);
+
+  --sidebar: var(--paper);
+  --sidebar-foreground: var(--ink);
+  --sidebar-primary: var(--ink);
+  --sidebar-primary-foreground: var(--paper);
+  --sidebar-accent: var(--gold);
+  --sidebar-accent-foreground: var(--ink);
+  --sidebar-border: var(--line);
+  --sidebar-ring: var(--gold);
+
+  /* §1: soft rounded corners. */
+  --radius: 0.75rem;
+}
+
+/*
+ * `@theme inline` (not plain `@theme`) is required: `inline` makes the generated
+ * utilities reference the runtime CSS variable rather than baking in a literal at
+ * build time — which is what keeps a future `.dark` override working.
+ */
+@theme inline {
+  /* Brand names as utilities: bg-paper, text-ink, border-line, bg-gold/60 … */
+  --color-ink: var(--ink);
+  --color-paper: var(--paper);
+  --color-gold: var(--gold);
+  --color-slate: var(--slate);
+  --color-line: var(--line);
+
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --color-chart-4: var(--chart-4);
+  --color-chart-5: var(--chart-5);
+
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-ring: var(--sidebar-ring);
+
+  /* --- Type (§1). Values come from next/font in layout.tsx. -------------- */
+  --font-sans: var(--font-inter); /* body */
+  --font-display: var(--font-fraunces); /* headings / logo */
+  --font-heading: var(--font-fraunces); /* shadcn's own heading token */
+  --font-mono: var(--font-ibm-plex-mono); /* small uppercase labels/tags */
+
+  --radius-sm: calc(var(--radius) * 0.6);
+  --radius-md: calc(var(--radius) * 0.8);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) * 1.4);
+  --radius-2xl: calc(var(--radius) * 1.8);
+  --radius-3xl: calc(var(--radius) * 2.2);
+  --radius-4xl: calc(var(--radius) * 2.6);
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  html {
+    @apply font-sans;
+  }
+  body {
+    @apply bg-background text-foreground;
+  }
+  /* §1: Fraunces on headings everywhere, without anyone remembering a class. */
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
+    @apply font-display;
+  }
+}
+
+/* §1: the small uppercase mono label/tag treatment. */
+@utility label-mono {
+  @apply font-mono text-xs tracking-widest uppercase text-slate;
+}
