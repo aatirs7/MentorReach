@@ -8,6 +8,7 @@ import { BookingConfirmedEmail } from '@/lib/email/templates'
 import { formatPrice } from '@/lib/coach-schema'
 import { env } from '@/lib/env'
 import { notify } from '@/lib/notifications'
+import { cancellationDeadline, formatDeadline } from '@/lib/policy-copy'
 import { isScheduled, type SessionStatus } from '@/lib/sessions'
 
 /**
@@ -160,6 +161,13 @@ async function handleCreated(sessionId: string, body: CalendlyPayload) {
     (new Date(scheduled.end_time).getTime() - new Date(scheduled.start_time).getTime()) / 60000,
   )
 
+  /**
+   * §11 — the concrete deadline finally exists, because a time has now been picked.
+   * This is the first point in the flow where it can be computed at all (payment
+   * precedes scheduling), which is why the checkout copy states the rule without it.
+   */
+  const deadlineLabel = formatDeadline(cancellationDeadline(new Date(scheduled.start_time)))
+
   await Promise.all([
     notify({
       userId: student.id,
@@ -175,6 +183,7 @@ async function handleCreated(sessionId: string, body: CalendlyPayload) {
           startsAt,
           amount: formatPrice(session.amountCents),
           manageUrl: `${env.NEXT_PUBLIC_APP_URL}/sessions`,
+          cancellationDeadline: deadlineLabel,
         }),
       },
     }),

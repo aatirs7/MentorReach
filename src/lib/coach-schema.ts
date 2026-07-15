@@ -2,12 +2,23 @@ import { z } from 'zod'
 
 /** Spec §5 — coach profile setup. Shared by the client form and the server action. */
 
-/** Open set by design — `text` in the DB, so adding one is not a migration. */
+/**
+ * The single source of truth for coach fields.
+ *
+ * Open set by design — `text` in the DB, so adding one is not a migration. Browse's
+ * filter reads the DISTINCT industries actually in use rather than this list, so a new
+ * entry shows up there as soon as one approved coach picks it.
+ *
+ * Cybersecurity is its own field, deliberately not folded under Software engineering:
+ * the recruiting path, the interviews and the employers are different, and a student
+ * filtering for it would not find the right coach under a generic tech label.
+ */
 export const INDUSTRIES = [
   'Investment banking',
   'Private equity',
   'Consulting',
   'Software engineering',
+  'Cybersecurity',
   'Product management',
   'Data science',
   'Medicine',

@@ -22,6 +22,13 @@
       "when": 1784074901904,
       "tag": "0002_young_paper_doll",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1784148089169,
+      "tag": "0003_daily_betty_brant",
+      "breakpoints": true
     }
   ]
 }

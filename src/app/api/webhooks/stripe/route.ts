@@ -87,6 +87,19 @@ async function handleCheckoutCompleted(checkout: Stripe.Checkout.Session) {
     return
   }
 
+  /**
+   * §11 acknowledgment, captured before the Stripe redirect and carried through
+   * metadata. Parsed defensively: an unreadable value must not lose the payment, and a
+   * missing one is honestly recorded as null rather than back-filled with "now", which
+   * would fabricate evidence for a dispute.
+   */
+  const ackRaw = md.policyAckAt ? new Date(md.policyAckAt) : null
+  const policyAckAt = ackRaw && !Number.isNaN(ackRaw.getTime()) ? ackRaw : null
+
+  if (!policyAckAt) {
+    console.warn(`[stripe-webhook] checkout ${checkout.id} has no usable policyAckAt`)
+  }
+
   const session = await createSessionFromCheckout({
     paymentIntentId,
     amountCents: checkout.amount_total ?? 0,
@@ -94,6 +107,7 @@ async function handleCheckoutCompleted(checkout: Stripe.Checkout.Session) {
     offeringId: md.offeringId,
     coachId: md.coachId,
     studentId: md.studentId,
+    policyAckAt,
   })
 
   // Already had a scheduling link (this is a retry) — don't mint a second one.

@@ -1,0 +1,1 @@
+ALTER TABLE "sessions" ADD COLUMN "policy_ack_at" timestamp with time zone;

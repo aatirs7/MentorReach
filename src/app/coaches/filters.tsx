@@ -45,7 +45,7 @@ export function BrowseFilters({ industries }: { industries: string[] }) {
   return (
     <div className="mt-8 flex flex-wrap items-end justify-center gap-4 border-y border-line/15 py-5">
       <div>
-        <Label htmlFor="f-industry" className="label-mono">
+        <Label htmlFor="f-industry" className="label-mono block text-center">
           Field
         </Label>
         <Select
@@ -67,7 +67,7 @@ export function BrowseFilters({ industries }: { industries: string[] }) {
       </div>
 
       <div>
-        <Label htmlFor="f-length" className="label-mono">
+        <Label htmlFor="f-length" className="label-mono block text-center">
           Length
         </Label>
         <Select value={searchParams.get('length') ?? ANY} onValueChange={(v) => apply('length', v)}>
@@ -86,7 +86,7 @@ export function BrowseFilters({ industries }: { industries: string[] }) {
       </div>
 
       <div>
-        <Label htmlFor="f-price" className="label-mono">
+        <Label htmlFor="f-price" className="label-mono block text-center">
           Max price
         </Label>
         <div className="mt-2 flex items-center gap-1.5">

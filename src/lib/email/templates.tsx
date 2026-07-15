@@ -11,6 +11,7 @@ import {
   Text,
 } from '@react-email/components'
 import type { ReactNode } from 'react'
+import { POLICY_HEADING, policySentence } from '../policy-copy'
 
 /**
  * Spec §12 email templates, §1 brand.
@@ -39,6 +40,13 @@ const h1 = {
   fontSize: '26px',
   lineHeight: '1.25',
   margin: '12px 0 16px',
+  fontFamily: "'Fraunces',Georgia,serif",
+}
+const h2 = {
+  color: INK,
+  fontSize: '17px',
+  lineHeight: '1.3',
+  margin: '0 0 8px',
   fontFamily: "'Fraunces',Georgia,serif",
 }
 const text = { color: INK, fontSize: '15px', lineHeight: '1.6', margin: '0 0 14px' }
@@ -80,6 +88,8 @@ export function BookingConfirmedEmail(props: {
   startsAt: string
   amount: string
   manageUrl: string
+  /** §11 deadline label (start minus 24h), already formatted. */
+  cancellationDeadline?: string
 }) {
   return (
     <Shell preview={`Your session with ${props.coachName} is booked`}>
@@ -106,10 +116,15 @@ export function BookingConfirmedEmail(props: {
       <Link href={props.manageUrl} style={button}>
         View session
       </Link>
-      <Text style={muted}>
-        Need to change it? Reschedule or cancel free up to 24 hours before the start time.
-        Inside 24 hours the session is non-refundable.
-      </Text>
+
+      <Hr style={hr} />
+
+      {/* §11 — the same policy the student acknowledged at checkout, now with the
+          concrete deadline, which only exists once a time has been picked. */}
+      <Heading as="h2" style={h2}>
+        {POLICY_HEADING}
+      </Heading>
+      <Text style={text}>{policySentence(props.cancellationDeadline)}</Text>
     </Shell>
   )
 }

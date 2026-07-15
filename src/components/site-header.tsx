@@ -50,8 +50,13 @@ export async function SiteHeader() {
         <nav className="flex items-center gap-1">
           {userId ? (
             <>
-              {/* §2.3: no browse link until the survey is done — the page would bounce them. */}
-              {user?.role === 'student' && surveyDone ? (
+              {/*
+               * §2.3: no browse link for a student until the survey is done, because the
+               * page would only bounce them back to it. Admins get the link regardless:
+               * requireStudent() lets them through to inspect student surfaces, so
+               * hiding it would just mean typing the URL.
+               */}
+              {(user?.role === 'student' && surveyDone) || user?.role === 'admin' ? (
                 <NavLink href="/coaches">Browse</NavLink>
               ) : null}
 

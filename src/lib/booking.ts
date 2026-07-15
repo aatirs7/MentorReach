@@ -95,6 +95,8 @@ export async function getOrCreateLink(params: {
 export async function createCheckout(params: {
   offeringId: string
   studentUserId: string
+  /** §11 — when the student acknowledged the cancellation policy, before paying. */
+  policyAckAt: Date
 }): Promise<{ url: string }> {
   const offering = await db.query.coachOfferings.findFirst({
     where: eq(coachOfferings.id, params.offeringId),
@@ -160,10 +162,10 @@ export async function createCheckout(params: {
       // §10 destination charge: Stripe splits the money at capture time.
       application_fee_amount: commissionCents,
       transfer_data: { destination: profile.stripeAccountId },
-      metadata: sessionMetadata(link.id, offering.id, coach.id, student.id),
+      metadata: sessionMetadata(link.id, offering.id, coach.id, student.id, params.policyAckAt),
     },
     // Mirrored onto the Checkout Session too — the webhook reads them from here.
-    metadata: sessionMetadata(link.id, offering.id, coach.id, student.id),
+    metadata: sessionMetadata(link.id, offering.id, coach.id, student.id, params.policyAckAt),
     success_url: `${env.NEXT_PUBLIC_APP_URL}/book/complete?cs={CHECKOUT_SESSION_ID}`,
     cancel_url: `${env.NEXT_PUBLIC_APP_URL}/coaches/${coach.id}?canceled=1`,
   })
@@ -178,8 +180,17 @@ function sessionMetadata(
   offeringId: string,
   coachId: string,
   studentId: string,
+  policyAckAt: Date,
 ): Record<string, string> {
-  return { linkId, offeringId, coachId, studentId }
+  return {
+    linkId,
+    offeringId,
+    coachId,
+    studentId,
+    // Carried through Stripe so the webhook can persist it: the session row is only
+    // created once payment confirms, but consent happened before the redirect.
+    policyAckAt: policyAckAt.toISOString(),
+  }
 }
 
 /**
@@ -196,6 +207,8 @@ export async function createSessionFromCheckout(params: {
   offeringId: string
   coachId: string
   studentId: string
+  /** §11 acknowledgment timestamp, from the checkout metadata. */
+  policyAckAt: Date | null
 }) {
   const link = await db.query.coachStudentLinks.findFirst({
     where: eq(coachStudentLinks.id, params.linkId),
@@ -218,6 +231,7 @@ export async function createSessionFromCheckout(params: {
       coachPayoutCents,
       status: 'paid_unscheduled',
       stripePaymentIntentId: params.paymentIntentId,
+      policyAckAt: params.policyAckAt,
     })
     .onConflictDoNothing({ target: sessions.stripePaymentIntentId })
     .returning()

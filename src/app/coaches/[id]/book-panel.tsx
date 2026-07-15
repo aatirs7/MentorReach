@@ -4,13 +4,26 @@ import { useActionState, useState } from 'react'
 import { type BookState, startBooking } from './actions'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
+import { Checkbox } from '@/components/ui/checkbox'
+import { Label } from '@/components/ui/label'
 import { formatPrice } from '@/lib/coach-schema'
+import { ACK_LABEL, CHECKOUT_HEADING, policySentence } from '@/lib/policy-copy'
 
 type Offering = { id: string; lengthMinutes: number; priceCents: number }
 
 /**
  * Spec §8 — pick a length, then pay. Payment precedes scheduling, so this panel's job
  * ends at the Stripe redirect; the Calendly step happens after the webhook confirms.
+ *
+ * The §11 policy is stated HERE, before any money moves, and must be acknowledged. The
+ * checkbox gates the pay button on the client for the UX, and the server action
+ * re-checks it — a disabled button is not enforcement.
+ *
+ * NOTE on the deadline: the policy sentence carries no concrete timestamp at this point,
+ * and that is not an omission. Because §8 puts payment before scheduling, there is no
+ * session start time yet, so no deadline exists to compute. Printing a guess would be
+ * worse than stating the rule: it would be a written promise about a time we don't know.
+ * The concrete deadline appears in the confirmation email, once a time has been picked.
  */
 export function BookPanel({
   offerings,
@@ -23,13 +36,17 @@ export function BookPanel({
 }) {
   const [state, action, pending] = useActionState<BookState, FormData>(startBooking, {})
   const [selected, setSelected] = useState<string>(offerings[0]?.id ?? '')
+  const [acked, setAcked] = useState(false)
+
+  const blocked = !bookingEnabled || Boolean(disabledReason)
 
   return (
-    <Card className="border-line/20 p-6">
+    <Card className="border-line/20 bg-raised p-6">
       <p className="label-mono">Book a session</p>
 
       <form action={action} className="mt-4">
         <input type="hidden" name="offeringId" value={selected} />
+        <input type="hidden" name="policyAck" value={acked ? 'true' : ''} />
 
         <div className="space-y-2">
           {offerings.map((o) => {
@@ -51,6 +68,25 @@ export function BookPanel({
           })}
         </div>
 
+        {/* §11 — stated before payment, and acknowledged. */}
+        <div className="mt-5 rounded-lg border border-line/20 bg-sand p-4 text-left">
+          <p className="font-display text-base">{CHECKOUT_HEADING}</p>
+          <p className="mt-1.5 text-sm leading-relaxed text-slate">{policySentence()}</p>
+
+          <div className="mt-3 flex items-start gap-2.5">
+            <Checkbox
+              id="policy-ack"
+              checked={acked}
+              onCheckedChange={(c) => setAcked(c === true)}
+              disabled={blocked}
+              className="mt-0.5"
+            />
+            <Label htmlFor="policy-ack" className="text-sm leading-snug font-normal text-ink">
+              {ACK_LABEL}
+            </Label>
+          </div>
+        </div>
+
         {disabledReason ? (
           <p className="mt-4 rounded-lg border border-line/20 bg-muted p-3 text-sm text-slate">
             {disabledReason}
@@ -67,13 +103,13 @@ export function BookPanel({
           type="submit"
           size="lg"
           className="mt-5 w-full"
-          disabled={pending || !selected || !bookingEnabled || Boolean(disabledReason)}
+          disabled={pending || !selected || blocked || !acked}
         >
           {pending ? 'Starting checkout…' : 'Pay and pick a time'}
         </Button>
 
         <p className="mt-3 text-center text-xs text-slate">
-          You&rsquo;ll choose a time right after payment. Free cancellation up to 24 hours before.
+          You&rsquo;ll choose a time right after payment.
         </p>
       </form>
     </Card>

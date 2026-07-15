@@ -121,6 +121,21 @@ const COACHES: DemoCoach[] = [
     ],
   },
   {
+    slug: 'nadia-haddad',
+    fullName: 'Nadia Haddad',
+    email: 'nadia.haddad@demo.trajectorycoaches.com',
+    industry: 'Cybersecurity',
+    currentTitle: 'Senior Security Engineer at CrowdStrike',
+    bio: "I came into security through a help desk job and a lot of CTFs, not a CS degree, so I have opinions about which certs are worth your money and which are not.\n\nI help with breaking into blue team or offensive security, what a SOC role is actually like day to day, and building a home lab that gives you something real to talk about. If you're deciding between security and general software, I can give you the honest tradeoff.",
+    linkedinUrl: 'https://www.linkedin.com/in/example-nadia-haddad',
+    employerNote: 'Nothing about customers, incidents, or internal tooling.',
+    referralCode: 'NHDEMO07',
+    offerings: [
+      { lengthMinutes: 30, priceCents: 6000 },
+      { lengthMinutes: 60, priceCents: 10500 },
+    ],
+  },
+  {
     slug: 'tom-brennan',
     fullName: 'Tom Brennan',
     email: 'tom.brennan@demo.trajectorycoaches.com',

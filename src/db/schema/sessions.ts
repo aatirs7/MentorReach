@@ -74,6 +74,17 @@ export const sessions = pgTable(
      */
     reminderSentAt: timestamp('reminder_sent_at', { withTimezone: true, mode: 'date' }),
 
+    /**
+     * When the student ticked "I understand the cancellation policy", captured at the
+     * moment they started checkout and carried through Stripe metadata onto this row.
+     *
+     * This is chargeback-defense evidence: it is the record that the §11 non-refundable
+     * terms were shown and acknowledged BEFORE any money moved, which is what makes an
+     * "I didn't know" dispute fail. Nullable only because admin/comped sessions may not
+     * go through checkout.
+     */
+    policyAckAt: timestamp('policy_ack_at', { withTimezone: true, mode: 'date' }),
+
     createdAt: timestamp('created_at', { withTimezone: true, mode: 'date' }).notNull().defaultNow(),
     updatedAt: timestamp('updated_at', { withTimezone: true, mode: 'date' })
       .notNull()
