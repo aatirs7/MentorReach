@@ -22,6 +22,18 @@ import { z } from 'zod'
  * full literals (`process.env.NEXT_PUBLIC_X`) in client code for Next's inliner to see
  * them, so they don't belong in this module anyway.
  */
+/**
+ * An optional var where an EMPTY STRING means "not configured".
+ *
+ * This matters far more than it looks. A .env file habitually carries `KEY=""`
+ * placeholders for services you haven't set up yet — that is exactly the shape of
+ * .env.example. A plain `z.string().min(1).optional()` treats "" as PRESENT-BUT-INVALID
+ * rather than absent, so one blank placeholder throws at boot and takes the entire app
+ * down, which defeats the whole point of having an optional tier.
+ */
+const optionalKey = () =>
+  z.preprocess((v) => (v === '' ? undefined : v), z.string().min(1).optional())
+
 const schema = z.object({
   // --- Required ------------------------------------------------------------
   /** Neon POOLED connection string (…-pooler.…). Migrations use the unpooled one. */
@@ -31,27 +43,31 @@ const schema = z.object({
 
   // --- Optional: activate an integration when supplied ----------------------
   /** Spec §10. Stripe Connect (platform account). */
-  STRIPE_SECRET_KEY: z.string().min(1).optional(),
-  STRIPE_WEBHOOK_SECRET: z.string().min(1).optional(),
+  STRIPE_SECRET_KEY: optionalKey(),
+  STRIPE_WEBHOOK_SECRET: optionalKey(),
 
   /** Spec §9. Calendly Teams org personal access token. */
-  CALENDLY_API_TOKEN: z.string().min(1).optional(),
-  CALENDLY_WEBHOOK_SIGNING_KEY: z.string().min(1).optional(),
+  CALENDLY_API_TOKEN: optionalKey(),
+  CALENDLY_WEBHOOK_SIGNING_KEY: optionalKey(),
   /** The Calendly org URI (https://api.calendly.com/organizations/…). */
-  CALENDLY_ORGANIZATION_URI: z.string().min(1).optional(),
+  CALENDLY_ORGANIZATION_URI: optionalKey(),
 
   /** Spec §12. Resend. */
-  RESEND_API_KEY: z.string().min(1).optional(),
+  RESEND_API_KEY: optionalKey(),
   /** e.g. "Trajectory Coaching <hello@trajectorycoaches.com>" */
-  EMAIL_FROM: z.string().min(1).optional(),
+  EMAIL_FROM: optionalKey(),
 
-  /** Protects /api/cron/*. Required in production for the §11 completion job. */
-  CRON_SECRET: z.string().min(1).optional(),
+  /** Protects /api/cron. Required in production for the §11 completion job. */
+  CRON_SECRET: optionalKey(),
 
   /** Gates /api/health in production. */
-  HEALTH_CHECK_TOKEN: z.string().min(1).optional(),
+  HEALTH_CHECK_TOKEN: optionalKey(),
 
-  NEXT_PUBLIC_APP_URL: z.string().url().default('http://localhost:3000'),
+  /** Same empty-string treatment: a blank NEXT_PUBLIC_APP_URL should fall back, not throw. */
+  NEXT_PUBLIC_APP_URL: z.preprocess(
+    (v) => (v === '' || v === undefined ? 'http://localhost:3000' : v),
+    z.string().url(),
+  ),
 })
 
 const parsed = schema.safeParse(process.env)

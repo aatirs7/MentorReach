@@ -74,9 +74,47 @@ Migrations are `generate` + `migrate`, run manually, with `drizzle/` committed. 
 **not** run in the Vercel build — concurrent preview builds would race DDL against one
 database. `db:push` is for local scratch against a Neon branch only.
 
+## Integrations are optional by design
+
+`src/lib/env.ts` splits env vars into two tiers. **Required** (Neon, Clerk) fail at boot.
+**Optional** (Stripe, Calendly, Resend, cron) are checked at point of use via
+`requireEnv()`, so the app builds and runs without them and each feature degrades with an
+honest message instead of a crash.
+
+This is deliberate — it let the platform be built before the accounts existed — and it is
+a hazard at launch, because a missing key looks like a quiet feature gap rather than an
+error. **`/admin/integrations` is the check.** Never move an optional key's validation to
+module scope; a top-level throw breaks `next build` and every page that transitively
+imports it.
+
+## Launch checklist (when the keys land)
+
+1. Fill `.env.local` (see the tiers in that file), then mirror every var into Vercel.
+2. Set `NEXT_PUBLIC_APP_URL` to the real origin — Stripe return URLs, Calendly webhook
+   registration, and every email link are built from it.
+3. Clerk: claims editor (`{ "metadata": "{{user.public_metadata}}" }`) + webhook at
+   `/api/webhooks/clerk`.
+4. Stripe: enable Connect; webhook at `/api/webhooks/stripe` for
+   `checkout.session.completed`, `charge.refunded`, `account.updated`.
+5. Calendly: Teams org; run `ensureWebhookSubscription()` once per environment; set the
+   org cancellation cutoff to 24h so its UX matches §11 (it is NOT the authority — we
+   decide refunds).
+6. Cron: `CRON_SECRET` set; `vercel.json` already schedules `/api/cron` hourly.
+7. Make yourself admin: set `publicMetadata.role = "admin"` in the Clerk dashboard, then
+   **sign out and back in** — the session token only reissues on refresh.
+8. Verify at `/admin/integrations` that everything reads Live.
+
 ## Unresolved with the client
 
-Spec §14 plus six schema-shaped questions are open — see `docs/trajectory-platform-spec.md`
-§14 and the comments in `src/db/schema/`. Notably: the §6 commission binding
-interpretation is an assumption, which is why that logic is quarantined in one pure
-function.
+Spec §14 plus schema-shaped questions are open — see `docs/trajectory-platform-spec.md`
+§14 and the comments in `src/db/schema/`. The ones that are load-bearing:
+
+- **§14.1 commission binding** — the per-pair reading is an ASSUMPTION. It's quarantined
+  in `src/lib/commission.ts` (pure, no I/O, no callers except `getOrCreateLink`) so a
+  different answer is a one-file change plus a test update.
+- **§14.2 late cancel** — we assume the coach keeps the payout. Changing it is the
+  `if (refundable)` branch in `src/lib/cancel.ts`.
+- **§7 Q7 `path_certainty`** — stored 1–5; labels in `src/lib/survey-schema.ts` need
+  confirming.
+- **§10 vs §11 `refunded` vs `canceled_free`** — read contradictorily; built as sequential
+  (intent → confirmed by `charge.refunded`), not alternative.
