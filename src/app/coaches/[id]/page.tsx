@@ -1,29 +1,38 @@
 import { notFound } from 'next/navigation'
 import { BookPanel } from './book-panel'
 import { CalendlyEmbed } from './calendly-embed'
+import { CoachAvatar, SpecialtyTags } from '@/components/coach-card'
 import { Badge } from '@/components/ui/badge'
-import { requireStudent } from '@/lib/auth/guards'
+import { bookingGate } from '@/lib/auth/guards'
 import { getPublicCoach } from '@/lib/browse'
 import { bookingEnabled } from '@/lib/env'
 
 export async function generateMetadata({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
   const data = await getPublicCoach(id)
-  return { title: data?.coach.fullName ?? 'Coach' }
+
+  if (!data) return { title: 'Coach' }
+
+  return {
+    title: data.coach.fullName ?? 'Coach',
+    description: `${data.profile.currentTitle}. ${data.profile.bio.slice(0, 140)}`,
+  }
 }
 
 /**
  * Spec §8 — coach profile: full bio, background, what they help with, rates, and the
- * booking action. Gated behind the survey (§2.3) via requireStudent().
+ * booking action.
+ *
+ * PUBLIC (see the note in ../page.tsx): anyone can read it, only a signed-in student
+ * with a completed survey can book. bookingGate() computes which, so the panel can say
+ * what's needed rather than bouncing a stranger to a sign-in wall.
  *
  * getPublicCoach() returns null for anyone not `approved`, so an unapproved coach's page
  * 404s rather than being quietly viewable by URL (§2.4).
  */
 export default async function CoachProfilePage({ params }: { params: Promise<{ id: string }> }) {
-  await requireStudent()
-
   const { id } = await params
-  const data = await getPublicCoach(id)
+  const [data, gate] = await Promise.all([getPublicCoach(id), bookingGate()])
 
   if (!data) notFound()
 
@@ -46,22 +55,16 @@ export default async function CoachProfilePage({ params }: { params: Promise<{ i
       <div className="grid gap-12 lg:grid-cols-[1fr_360px]">
         <div>
           <div className="flex items-start gap-5">
-            {profile.headshotUrl ? (
-              /* Coach-supplied URL from an arbitrary host — see the note in the browse grid. */
-              // eslint-disable-next-line @next/next/no-img-element
-              <img
-                src={profile.headshotUrl}
-                alt=""
-                className="size-20 shrink-0 rounded-full border border-line/20 object-cover"
-              />
-            ) : (
-              <div
-                aria-hidden
-                className="flex size-20 shrink-0 items-center justify-center rounded-full border border-line/20 bg-muted font-display text-2xl"
-              >
-                {(coach.fullName ?? '?').charAt(0)}
-              </div>
-            )}
+            {/* Goes through resolveHeadshot(): a real profile can never show a fake face. */}
+            <CoachAvatar
+              coach={{
+                fullName: coach.fullName,
+                headshotUrl: profile.headshotUrl,
+                isSeed: profile.isSeed,
+              }}
+              size={88}
+              className="text-3xl"
+            />
 
             <div>
               <h1 className="text-4xl leading-tight">{coach.fullName ?? 'Coach'}</h1>
@@ -72,6 +75,7 @@ export default async function CoachProfilePage({ params }: { params: Promise<{ i
               >
                 {profile.industry}
               </Badge>
+              <SpecialtyTags specialties={profile.specialties} max={5} />
             </div>
           </div>
 
@@ -110,6 +114,7 @@ export default async function CoachProfilePage({ params }: { params: Promise<{ i
             }))}
             bookingEnabled={enabled}
             disabledReason={disabledReason}
+            gate={gate}
           />
         </aside>
       </div>

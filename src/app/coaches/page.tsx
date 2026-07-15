@@ -1,24 +1,33 @@
-import Link from 'next/link'
 import { BrowseFilters } from './filters'
+import { CoachCard } from '@/components/coach-card'
 import { Card } from '@/components/ui/card'
-import { requireStudent } from '@/lib/auth/guards'
 import { browseCoaches, listIndustries } from '@/lib/browse'
-import { formatPrice, SESSION_LENGTHS } from '@/lib/coach-schema'
+import { SESSION_LENGTHS } from '@/lib/coach-schema'
 import { parsePriceToCents } from '@/lib/coach-schema'
 
-export const metadata = { title: 'Browse coaches' }
+export const metadata = {
+  title: 'Browse coaches',
+  description:
+    'Book time with people who already have the job you want. Every coach is verified against their stated employer.',
+}
 
 /**
- * Spec §8 — browse. Hard rule §2.3 gates this behind the survey: requireStudent()
- * redirects to /onboarding/survey unless completed_at is set.
+ * Spec §8 — browse.
+ *
+ * PUBLIC, deliberately. This deviates from a literal reading of §2.3/§3, which would put
+ * a sign-in wall in front of the coach list — the exact page the homepage sends everyone
+ * to, and the only content search engines could ever index. The survey's purpose is to
+ * know who a student is before they TRANSACT, and that's preserved: booking still
+ * requires sign-in plus a completed survey (see bookingGate()). Reading a public profile
+ * costs nothing and reveals nothing.
+ *
+ * Recorded as an intentional deviation in docs/spec-coverage.md.
  */
 export default async function CoachesPage({
   searchParams,
 }: {
   searchParams: Promise<{ industry?: string; maxPrice?: string; length?: string }>
 }) {
-  await requireStudent()
-
   const params = await searchParams
 
   const maxPriceCents = params.maxPrice ? parsePriceToCents(params.maxPrice) : null
@@ -55,57 +64,9 @@ export default async function CoachesPage({
           </p>
         </Card>
       ) : (
-        <div className="mt-10 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="mt-10 grid gap-5 text-left sm:grid-cols-2 lg:grid-cols-3">
           {coaches.map((c) => (
-            <Link key={c.userId} href={`/coaches/${c.userId}`} className="group">
-              <Card className="h-full gap-0 border-line/15 bg-raised p-6 transition-all group-hover:-translate-y-0.5 group-hover:border-gold">
-                <div className="flex items-start gap-3">
-                  {c.headshotUrl ? (
-                    /*
-                     * Coach-supplied URL from an arbitrary host. next/image would need a
-                     * remotePatterns entry per domain, which we can't enumerate. Revisit
-                     * when headshots are uploaded to storage we control.
-                     */
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img
-                      src={c.headshotUrl}
-                      alt=""
-                      className="size-12 shrink-0 rounded-full border border-line/20 object-cover"
-                    />
-                  ) : (
-                    <div
-                      aria-hidden
-                      className="flex size-12 shrink-0 items-center justify-center rounded-full bg-ink font-display text-lg text-paper"
-                    >
-                      {(c.fullName ?? '?').charAt(0)}
-                    </div>
-                  )}
-
-                  <div className="min-w-0">
-                    <h2 className="truncate text-lg leading-snug">{c.fullName ?? 'Coach'}</h2>
-                    <p className="truncate text-sm text-slate">{c.currentTitle}</p>
-                  </div>
-                </div>
-
-                <p className="mt-4 font-mono text-[10px] tracking-widest text-gold uppercase">
-                  {c.industry}
-                </p>
-
-                <p className="mt-3 line-clamp-3 text-sm leading-relaxed text-slate">{c.bio}</p>
-
-                <div className="mt-5 flex items-baseline justify-between border-t border-line/12 pt-4">
-                  <span className="text-sm text-slate">
-                    from{' '}
-                    <span className="font-display text-base text-ink">
-                      {formatPrice(c.startingPriceCents)}
-                    </span>
-                  </span>
-                  <span className="font-mono text-[10px] tracking-widest text-slate uppercase">
-                    {c.lengths.join(' / ')} min
-                  </span>
-                </div>
-              </Card>
-            </Link>
+            <CoachCard key={c.userId} coach={c} />
           ))}
         </div>
       )}

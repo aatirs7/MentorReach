@@ -9,7 +9,7 @@ on trust. Sections refer to the spec.
 |---|---|
 | §2.1 All payment on-platform | Only path to a session is Stripe Checkout (`lib/booking.ts`). `sessions` can only be created by the `checkout.session.completed` webhook. "Asked to pay off-platform" is a first-class report category (`app/report/actions.ts`). |
 | §2.2 Commission frozen, no overrides | `UNIQUE(coach_id, student_id)` on `coach_student_links` — there is physically nowhere to put a second rate for a pair. `getOrCreateLink()` reads before it ever computes. All logic in `lib/commission.ts`, pure, no I/O. |
-| §2.3 Students gated behind survey | `requireStudent()` in `lib/auth/guards.ts`, gating on `completed_at IS NOT NULL` (not row existence). Applied on every browse/book surface **and** inside the booking server action. |
+| §2.3 Students gated behind survey | **Gates BOOKING, not browsing** — see "Intentional change" below. `requireStudent()` in `lib/auth/guards.ts` gates on `completed_at IS NOT NULL` (not row existence), enforced inside the booking server action and `/book/complete`. |
 | §2.4 Coaches gated behind approval | `coach_profiles.status` **DEFAULT 'pending'** (a DB default, not an app decision). `browseCoaches()`/`getPublicCoach()` only ever return `approved`. Re-checked at the money path in `createCheckout()`. |
 
 ## §3–§12
@@ -26,6 +26,49 @@ on trust. Sections refer to the spec.
 | §10 Stripe Connect | `lib/stripe.ts`, `lib/booking.ts`, `app/api/webhooks/stripe/route.ts`, `app/coach/payouts`. Destination charge: `application_fee_amount` + `transfer_data.destination`. |
 | §11 State machine & policy | `lib/sessions.ts` (pure, tested), `lib/cancel.ts`, `app/api/cron/route.ts`. |
 | §12 Dashboards, notes, notifications, trust & safety | `app/sessions`, `app/notifications`, `app/report`, `app/admin/*`, `lib/notifications.ts`, `lib/email/*`. |
+
+## Intentional change: browse is public, booking is gated
+
+**Deviates from a literal §2.3 / §3.** §3 says middleware "blocks students without a
+completed survey", which taken at face value puts a sign-in wall in front of `/coaches`
+and `/coaches/[id]`.
+
+That was built first and was wrong. It put a wall in front of the exact page the homepage
+exists to send people to, made every coach profile invisible to search engines, and asked
+a stranger to create an account and answer ten questions before seeing a single price. It
+broke the homepage's own promise.
+
+**Now:** `/coaches` and `/coaches/[id]` are public and read-only. Booking requires sign-in
+plus a completed survey, enforced in `startBooking` (`app/coaches/[id]/actions.ts`) and at
+`/book/complete` — not merely in the UI, since a Server Action is a POST that can be
+replayed without the page rendering.
+
+**Why this preserves the rule rather than breaking it:** §2.3's purpose is that we know
+who a student is *before they transact*. That is intact. Reading a public profile costs
+nothing and reveals nothing; the survey still stands between a student and their first
+booking. `bookingGate()` in `lib/auth/guards.ts` computes what's missing so the panel can
+ask for exactly that, instead of redirecting a stranger into a wall.
+
+## Placeholder imagery, and the guardrail on it
+
+Demo coaches carry generated portraits (`i.pravatar.cc`) so browse doesn't look empty in a
+walkthrough. This is only safe because of one rule, enforced in data rather than by
+discipline:
+
+**A real coach profile can never render a generated face.** `coach_profiles.is_seed`
+(DEFAULT false) marks demo rows, and `resolveHeadshot()` in `src/lib/headshot.ts` is the
+single place an avatar is resolved. It refuses any known placeholder host on a non-seed
+profile and falls back to initials — even if the URL was pasted in by a coach, copied from
+seed data, or restored from a bad backup.
+
+That matters because the site tells students every coach is "verified against their stated
+employer". A stock face on a supposedly-vetted profile isn't a cosmetic slip; it makes the
+vetting claim false at the most visible point on the page. Covered by
+`src/lib/headshot.test.ts`.
+
+The hero image (`picsum.photos`) is deliberately abstract, never a face: a generated face
+there would imply a person who doesn't exist on a page promising real ones. Both hosts are
+allowlisted in `next.config.ts` and **should be removed when real assets land**.
 
 ## Deliberate deviations, and why
 

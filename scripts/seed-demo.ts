@@ -9,8 +9,12 @@
  *   identifiable and removable, and it can never collide with a real Clerk id.
  * - These accounts CANNOT sign in — no matching Clerk user exists. They exist only to
  *   populate browse.
- * - Photos are deliberately omitted. The card falls back to an initial avatar; putting
- *   real people's headshots on fake coaches would be misrepresentation, not seed data.
+ * - Every row is written with is_seed = true. That flag is what lets these profiles
+ *   carry generated portraits: resolveHeadshot() in src/lib/headshot.ts refuses to render
+ *   a placeholder face on any profile WITHOUT it, so a real coach can never show a fake
+ *   face while the site claims every coach is verified against their employer.
+ * - Portraits are generated (i.pravatar.cc), not photographs of real people. They're
+ *   deterministic per coach, so the same demo coach always has the same face.
  * - --undo refuses to touch anything without the prefix.
  *
  * Builds its own DB client rather than importing src/db, which is 'server-only' and
@@ -25,6 +29,7 @@ import { and, eq, like } from 'drizzle-orm'
 import { drizzle } from 'drizzle-orm/neon-http'
 import * as schema from '../src/db/schema'
 import { coachOfferings, coachProfiles, users } from '../src/db/schema'
+import { seedHeadshotUrl } from '../src/lib/headshot'
 
 const url = process.env.DATABASE_URL
 if (!url) throw new Error('DATABASE_URL is not set — check .env.local')
@@ -43,6 +48,8 @@ type DemoCoach = {
   linkedinUrl: string
   employerNote?: string
   referralCode: string
+  /** Short tags for the card, drawn from what the bio actually says they help with. */
+  specialties: string[]
   offerings: Array<{ lengthMinutes: number; priceCents: number }>
 }
 
@@ -57,6 +64,7 @@ const COACHES: DemoCoach[] = [
     linkedinUrl: 'https://www.linkedin.com/in/example-maya-rao',
     employerNote: 'Cannot discuss live deals or anything non-public.',
     referralCode: 'MRDEMO01',
+    specialties: ["Non-target","SA recruiting","Networking"],
     offerings: [
       { lengthMinutes: 30, priceCents: 7500 },
       { lengthMinutes: 60, priceCents: 13000 },
@@ -71,6 +79,7 @@ const COACHES: DemoCoach[] = [
     bio: "I've been on both sides of about 200 interview loops now, most recently as an interviewer at Stripe.\n\nWhat I'm actually useful for: figuring out why you're getting rejected after the onsite, system design when you've never designed a system, and deciding between offers. If your fundamentals are fine and something else is going wrong, I can usually find it in one session.",
     linkedinUrl: 'https://www.linkedin.com/in/example-daniel-osei',
     referralCode: 'DODEMO02',
+    specialties: ["Interview prep","System design","Offer negotiation"],
     offerings: [
       { lengthMinutes: 30, priceCents: 6500 },
       { lengthMinutes: 45, priceCents: 9000 },
@@ -87,6 +96,7 @@ const COACHES: DemoCoach[] = [
     linkedinUrl: 'https://www.linkedin.com/in/example-priya-venkatesan',
     employerNote: 'Views are my own; nothing client-specific.',
     referralCode: 'PVDEMO03',
+    specialties: ["Case prep","PEI","MBB recruiting"],
     offerings: [
       { lengthMinutes: 45, priceCents: 11000 },
       { lengthMinutes: 60, priceCents: 14000 },
@@ -101,6 +111,7 @@ const COACHES: DemoCoach[] = [
     bio: "I switched into PM from design, so I'm a good person to talk to if you don't have the 'standard' background and are wondering whether that's fatal. It isn't, usually.\n\nI help with breaking into APM programs, PM interview loops, and the thing nobody tells you: how to talk about work you did on a team without either overclaiming or disappearing from your own story.",
     linkedinUrl: 'https://www.linkedin.com/in/example-jordan-whitfield',
     referralCode: 'JWDEMO04',
+    specialties: ["APM programs","Career switching","PM interviews"],
     offerings: [
       { lengthMinutes: 30, priceCents: 7000 },
       { lengthMinutes: 60, priceCents: 12500 },
@@ -115,6 +126,7 @@ const COACHES: DemoCoach[] = [
     bio: "I applied to med school twice. The second time worked, and the difference wasn't my MCAT.\n\nI help pre-meds with the parts that actually move the needle: what your personal statement is really saying, how to talk about a gap year or a reapplication without apologizing for it, and whether the clinical experience you have is the clinical experience they want.",
     linkedinUrl: 'https://www.linkedin.com/in/example-aisha-mensah',
     referralCode: 'AMDEMO05',
+    specialties: ["Med school apps","Personal statement","Reapplying"],
     offerings: [
       { lengthMinutes: 30, priceCents: 5500 },
       { lengthMinutes: 45, priceCents: 8000 },
@@ -130,6 +142,7 @@ const COACHES: DemoCoach[] = [
     linkedinUrl: 'https://www.linkedin.com/in/example-nadia-haddad',
     employerNote: 'Nothing about customers, incidents, or internal tooling.',
     referralCode: 'NHDEMO07',
+    specialties: ["Blue team","Certs & home lab","Breaking in"],
     offerings: [
       { lengthMinutes: 30, priceCents: 6000 },
       { lengthMinutes: 60, priceCents: 10500 },
@@ -145,6 +158,7 @@ const COACHES: DemoCoach[] = [
     linkedinUrl: 'https://www.linkedin.com/in/example-tom-brennan',
     employerNote: 'Nothing client- or matter-specific.',
     referralCode: 'TBDEMO06',
+    specialties: ["Law school apps","OCI","Biglaw tradeoffs"],
     offerings: [
       { lengthMinutes: 30, priceCents: 8000 },
       { lengthMinutes: 60, priceCents: 15000 },
@@ -188,6 +202,13 @@ async function seed() {
       })
       .returning()
 
+    /**
+     * Deterministic per coach: same demo coach, same face, every reseed. Keyed on the
+     * stable slug rather than the uuid so re-running after an --undo doesn't reshuffle
+     * everyone's portrait.
+     */
+    const headshotUrl = seedHeadshotUrl(c.slug)
+
     await db
       .insert(coachProfiles)
       .values({
@@ -195,6 +216,8 @@ async function seed() {
         industry: c.industry,
         currentTitle: c.currentTitle,
         bio: c.bio,
+        headshotUrl,
+        specialties: c.specialties,
         linkedinUrl: c.linkedinUrl,
         employerNote: c.employerNote ?? null,
         referralCode: c.referralCode,
@@ -202,6 +225,9 @@ async function seed() {
         // still default to 'pending' — this bypasses nothing in the app itself.
         status: 'approved',
         approvedAt: new Date(),
+        // The flag that permits the generated portrait above. Without it, resolveHeadshot()
+        // would (correctly) refuse to render it.
+        isSeed: true,
       })
       .onConflictDoUpdate({
         target: coachProfiles.userId,
@@ -209,8 +235,11 @@ async function seed() {
           industry: c.industry,
           currentTitle: c.currentTitle,
           bio: c.bio,
+          headshotUrl,
+          specialties: c.specialties,
           linkedinUrl: c.linkedinUrl,
           status: 'approved',
+          isSeed: true,
         },
       })
 

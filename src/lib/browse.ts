@@ -14,9 +14,11 @@ export type CoachCard = {
   userId: string
   fullName: string | null
   headshotUrl: string | null
+  isSeed: boolean
   industry: string
   currentTitle: string
   bio: string
+  specialties: string[]
   startingPriceCents: number
   lengths: number[]
 }
@@ -54,9 +56,11 @@ export async function browseCoaches(filters: BrowseFilters = {}): Promise<CoachC
       userId: coachProfiles.userId,
       fullName: users.fullName,
       headshotUrl: coachProfiles.headshotUrl,
+      isSeed: coachProfiles.isSeed,
       industry: coachProfiles.industry,
       currentTitle: coachProfiles.currentTitle,
       bio: coachProfiles.bio,
+      specialties: coachProfiles.specialties,
       priceCents: coachOfferings.priceCents,
       lengthMinutes: coachOfferings.lengthMinutes,
     })
@@ -83,9 +87,11 @@ export async function browseCoaches(filters: BrowseFilters = {}): Promise<CoachC
       userId: r.userId,
       fullName: r.fullName,
       headshotUrl: r.headshotUrl,
+      isSeed: r.isSeed,
       industry: r.industry,
       currentTitle: r.currentTitle,
       bio: r.bio,
+      specialties: r.specialties,
       startingPriceCents: r.priceCents,
       lengths: [r.lengthMinutes],
     })
@@ -115,6 +121,57 @@ export async function getPublicCoach(userId: string) {
   if (!coach) return null
 
   return { profile, coach, offerings }
+}
+
+/**
+ * The employers currently on the roster, for the homepage "Coaches from" strip.
+ *
+ * DERIVED FROM LIVE DATA, never hardcoded: a hardcoded list becomes a false claim the
+ * moment a coach leaves, and "we have someone at X" is exactly the kind of thing a
+ * student would pick us over a competitor for. If the roster empties, this returns
+ * nothing and the strip disappears rather than lying.
+ *
+ * Employer is parsed out of `current_title` ("Analyst at Evercore" → "Evercore"), which
+ * is a heuristic on free text — hence the conservative bail-outs below. A separate
+ * `employer` column would be better and is worth doing when someone next touches the
+ * coach profile form; this avoids a migration and a form change for a decorative strip.
+ */
+export async function rosterEmployers(limit = 8): Promise<string[]> {
+  const rows = await db
+    .select({ currentTitle: coachProfiles.currentTitle })
+    .from(coachProfiles)
+    .where(eq(coachProfiles.status, 'approved'))
+
+  const seen = new Set<string>()
+  const employers: string[] = []
+
+  for (const r of rows) {
+    const employer = employerFromTitle(r.currentTitle)
+    if (!employer) continue
+
+    const key = employer.toLowerCase()
+    if (seen.has(key)) continue
+
+    seen.add(key)
+    employers.push(employer)
+  }
+
+  return employers.slice(0, limit)
+}
+
+/** "Senior Software Engineer at Stripe" → "Stripe". Null when we can't tell. */
+export function employerFromTitle(title: string): string | null {
+  // Last " at " wins: "Resident Physician, Internal Medicine at Johns Hopkins".
+  const idx = title.toLowerCase().lastIndexOf(' at ')
+  if (idx === -1) return null
+
+  const employer = title.slice(idx + 4).trim()
+
+  // Bail rather than print rubbish: an empty tail, or something long enough that it's
+  // probably a sentence rather than a company name.
+  if (!employer || employer.length > 40) return null
+
+  return employer
 }
 
 export async function priceBounds(): Promise<{ minCents: number; maxCents: number }> {

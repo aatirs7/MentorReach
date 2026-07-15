@@ -10,9 +10,15 @@ export type BookState = { error?: string }
 /**
  * Spec §8 — start a booking.
  *
- * requireStudent() enforces §2.3 here as well as on the page: a Server Action is a POST
- * to whatever route it lives on, so it must authorize itself rather than trust that the
- * page did.
+ * THIS is where the survey gate lives now. The coach list and profile are public (see
+ * ../page.tsx), so requireStudent() here isn't a second line of defence — it's the only
+ * one, and it's the right place for it: the rule's purpose is to know who a student is
+ * before they TRANSACT, not before they read.
+ *
+ * It redirects a signed-out visitor to sign-in and an unfinished student to the survey.
+ * The panel renders that as an explicit prompt rather than letting anyone reach this and
+ * get bounced, but the check has to be here regardless: a Server Action is a POST to
+ * whatever route it lives on and can be replayed without the page ever rendering.
  */
 export async function startBooking(_prev: BookState, formData: FormData): Promise<BookState> {
   const student = await requireStudent()

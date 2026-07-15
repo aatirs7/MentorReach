@@ -39,6 +39,27 @@ export const coachProfiles = pgTable(
     bio: text('bio').notNull(),
     headshotUrl: text('headshot_url'),
 
+    /**
+     * Up to a few short tags rendered on the coach card ("SA recruiting", "System
+     * design"). jsonb rather than a join table: they're display-only, never queried or
+     * filtered on, and a table would buy nothing but joins.
+     */
+    specialties: text('specialties').array().notNull().default([]),
+
+    /**
+     * TRUE only for demo rows created by scripts/seed-demo.ts.
+     *
+     * This exists to make one rule enforceable in DATA rather than by discipline:
+     * placeholder faces are for seed coaches only. A real profile must never render a
+     * generated face while the site claims every coach is verified against their
+     * employer — that would make the vetting promise a lie in the most visible way
+     * possible.
+     *
+     * DEFAULT false, so a real coach cannot become seed by omission. See
+     * resolveHeadshot() in src/lib/headshot.ts, which is the enforcement point.
+     */
+    isSeed: boolean('is_seed').notNull().default(false),
+
     /** Spec §12: required for vetting. Enforced in the schema, not just the form. */
     linkedinUrl: text('linkedin_url').notNull(),
 

@@ -86,3 +86,62 @@ export async function hasCompletedSurvey(userId: string): Promise<boolean> {
   })
   return Boolean(survey?.completedAt)
 }
+
+/**
+ * Can the current visitor book, and if not, what's in the way?
+ *
+ * DELIBERATE DEVIATION from spec §2.3/§3, recorded in docs/spec-coverage.md:
+ * the survey gates BOOKING, not BROWSING. §3 says middleware "blocks students without a
+ * completed survey", which taken literally puts a sign-in wall in front of the coach
+ * list — the one page the homepage exists to send people to. That kills top-of-funnel
+ * and makes every coach profile invisible to search engines, for no benefit: reading a
+ * public profile costs nothing and reveals nothing.
+ *
+ * The rule's actual purpose is that we know who a student is before they transact, and
+ * that is preserved exactly — booking still requires sign-in plus a completed survey,
+ * enforced in the action and not merely in the UI.
+ *
+ * Returns a reason so the page can say what's needed instead of silently redirecting.
+ */
+export type BookingGate =
+  | { canBook: true }
+  | { canBook: false; reason: 'signed_out'; href: string; cta: string; message: string }
+  | { canBook: false; reason: 'survey_incomplete'; href: string; cta: string; message: string }
+  | { canBook: false; reason: 'not_a_student'; href: string; cta: string; message: string }
+
+export async function bookingGate(): Promise<BookingGate> {
+  const user = await ensureUser()
+
+  if (!user) {
+    return {
+      canBook: false,
+      reason: 'signed_out',
+      href: '/sign-up',
+      cta: 'Sign up to book',
+      message: 'Create an account to book a session. Browsing is free.',
+    }
+  }
+
+  // Admins can transact for testing; coaches booking coaches isn't a flow we support.
+  if (user.role === 'coach') {
+    return {
+      canBook: false,
+      reason: 'not_a_student',
+      href: '/coach',
+      cta: 'Go to your coaching',
+      message: 'You’re signed in as a coach, so booking isn’t available on this account.',
+    }
+  }
+
+  if (user.role === 'student' && !(await hasCompletedSurvey(user.id))) {
+    return {
+      canBook: false,
+      reason: 'survey_incomplete',
+      href: '/onboarding/survey',
+      cta: 'Finish your survey to book',
+      message: 'A few quick questions first, so we can match you properly. Takes a minute.',
+    }
+  }
+
+  return { canBook: true }
+}

@@ -157,6 +157,28 @@
   --font-heading: var(--font-fraunces); /* shadcn's own heading token */
   --font-mono: var(--font-ibm-plex-mono); /* small uppercase labels/tags */
 
+  /**
+   * Type scale, registered in Tailwind's `--text-*` namespace so `text-hero` and
+   * `text-section` are real font-size utilities with their leading/tracking/weight
+   * attached.
+   *
+   * Do NOT redefine these as `@utility text-hero { … }`: that name collides with the
+   * built-in `text-*` matcher, which silently wins and leaves the headline at body size.
+   *
+   * clamp() rather than breakpoints so the headline tracks the viewport continuously
+   * instead of jumping at 640px. The hero is meant to read as a designed statement; the
+   * section tier sits clearly below it but stays confident.
+   */
+  --text-hero: clamp(3rem, 8vw, 6rem);
+  --text-hero--line-height: 1.03;
+  --text-hero--letter-spacing: -0.03em;
+  --text-hero--font-weight: 600;
+
+  --text-section: clamp(1.875rem, 3.2vw, 2.75rem);
+  --text-section--line-height: 1.12;
+  --text-section--letter-spacing: -0.015em;
+  --text-section--font-weight: 500;
+
   --radius-sm: calc(var(--radius) * 0.6);
   --radius-md: calc(var(--radius) * 0.8);
   --radius-lg: var(--radius);
@@ -191,3 +213,4 @@
 @utility label-mono {
   @apply font-mono text-xs tracking-widest uppercase text-slate;
 }
+
