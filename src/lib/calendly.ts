@@ -62,7 +62,21 @@ export async function listEventTypes(userUri: string): Promise<CalendlyEventType
   return data.collection
 }
 
-/** Find the coach's event type matching an offering length (30/45/60). */
+/**
+ * Find the coach's event type matching an offering length (30/45/60).
+ *
+ * NOTE on §9 "their event types created": Calendly has since added a Create Event Type
+ * endpoint (one-on-one only, basic fields), so auto-provisioning these at approval is
+ * possible in principle. It is deliberately NOT implemented, because the exact request
+ * shape could not be verified against live docs, and a wrong body would fail at runtime
+ * while looking like a working feature — on the path that decides whether a paid student
+ * can book at all.
+ *
+ * Today the coach creates their own 30/45/60 event types in Calendly and this looks them
+ * up by duration, which works and fails loudly (see the caller in the Stripe webhook).
+ * To automate it later: verify the payload against a real token, add createEventType(),
+ * and call it from approveCoach() — best-effort, keeping this lookup as the fallback.
+ */
 export async function findEventTypeByDuration(
   userUri: string,
   minutes: number,
