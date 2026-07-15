@@ -1,6 +1,5 @@
 import Link from 'next/link'
 import { BrowseFilters } from './filters'
-import { Badge } from '@/components/ui/badge'
 import { Card } from '@/components/ui/card'
 import { requireStudent } from '@/lib/auth/guards'
 import { browseCoaches, listIndustries } from '@/lib/browse'
@@ -57,7 +56,7 @@ export default async function CoachesPage({
         <div className="mt-10 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
           {coaches.map((c) => (
             <Link key={c.userId} href={`/coaches/${c.userId}`} className="group">
-              <Card className="h-full border-line/20 p-6 transition-colors group-hover:border-gold">
+              <Card className="h-full gap-0 border-line/15 bg-raised p-6 transition-all group-hover:-translate-y-0.5 group-hover:border-gold">
                 <div className="flex items-start gap-3">
                   {c.headshotUrl ? (
                     /*
@@ -74,7 +73,7 @@ export default async function CoachesPage({
                   ) : (
                     <div
                       aria-hidden
-                      className="flex size-12 shrink-0 items-center justify-center rounded-full border border-line/20 bg-muted font-display text-lg"
+                      className="flex size-12 shrink-0 items-center justify-center rounded-full bg-ink font-display text-lg text-paper"
                     >
                       {(c.fullName ?? '?').charAt(0)}
                     </div>
@@ -86,17 +85,20 @@ export default async function CoachesPage({
                   </div>
                 </div>
 
-                <Badge variant="secondary" className="mt-4 font-mono text-[11px] tracking-wider uppercase">
+                <p className="mt-4 font-mono text-[10px] tracking-widest text-gold uppercase">
                   {c.industry}
-                </Badge>
+                </p>
 
                 <p className="mt-3 line-clamp-3 text-sm leading-relaxed text-slate">{c.bio}</p>
 
-                <div className="mt-5 flex items-baseline justify-between border-t border-line/15 pt-4">
+                <div className="mt-5 flex items-baseline justify-between border-t border-line/12 pt-4">
                   <span className="text-sm text-slate">
-                    from <span className="text-ink">{formatPrice(c.startingPriceCents)}</span>
+                    from{' '}
+                    <span className="font-display text-base text-ink">
+                      {formatPrice(c.startingPriceCents)}
+                    </span>
                   </span>
-                  <span className="font-mono text-[11px] tracking-wider text-slate uppercase">
+                  <span className="font-mono text-[10px] tracking-widest text-slate uppercase">
                     {c.lengths.join(' / ')} min
                   </span>
                 </div>

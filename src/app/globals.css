@@ -33,23 +33,38 @@
   --slate: #5b6472; /* muted text */
   --line: #2e4057; /* borders */
 
+  /* --- Derived surfaces --------------------------------------------------
+   * §1 says "no heavy shadows", which is a rule about SHADOWS, not about depth.
+   * Depth here comes from stacked surfaces and color blocks instead:
+   *
+   *   --sand   a step DOWN from paper — recessed bands, alternating sections
+   *   --paper  the page
+   *   --raised a step UP from paper — cards read as lifted, without a shadow
+   *
+   * All three are mixed from the brand tokens, so the palette still has one source.
+   */
+  --raised: color-mix(in oklab, white 62%, var(--paper));
+  --sand: color-mix(in oklab, var(--ink) 7%, var(--paper));
+  --sand-deep: color-mix(in oklab, var(--ink) 12%, var(--paper));
+
   /* --- shadcn semantic tokens, remapped onto the brand ------------------- */
   --background: var(--paper);
   --foreground: var(--ink);
 
-  /* Cards sit on paper, separated by rules rather than shadows (§1). */
-  --card: var(--paper);
+  /* Cards are a LIFTED surface, not the same ivory as the page — that flatness
+   * was the whole problem: paper-on-paper reads as empty. */
+  --card: var(--raised);
   --card-foreground: var(--ink);
-  --popover: var(--paper);
+  --popover: var(--raised);
   --popover-foreground: var(--ink);
 
   --primary: var(--ink);
   --primary-foreground: var(--paper);
 
   /* Derived via color-mix so the palette still has exactly ONE source. */
-  --secondary: color-mix(in oklab, var(--ink) 6%, var(--paper));
+  --secondary: var(--sand);
   --secondary-foreground: var(--ink);
-  --muted: color-mix(in oklab, var(--ink) 5%, var(--paper));
+  --muted: var(--sand);
   --muted-foreground: var(--slate);
 
   --accent: var(--gold);
@@ -96,6 +111,11 @@
   --color-gold: var(--gold);
   --color-slate: var(--slate);
   --color-line: var(--line);
+
+  /* Derived surfaces: bg-raised, bg-sand, bg-sand-deep */
+  --color-raised: var(--raised);
+  --color-sand: var(--sand);
+  --color-sand-deep: var(--sand-deep);
 
   --color-background: var(--background);
   --color-foreground: var(--foreground);
