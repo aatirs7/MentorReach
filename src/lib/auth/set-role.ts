@@ -1,6 +1,9 @@
 'use server'
 
 import { auth, clerkClient } from '@clerk/nextjs/server'
+import { eq } from 'drizzle-orm'
+import { db } from '@/db'
+import { users } from '@/db/schema'
 import type { Role } from '@/types/globals'
 
 /**
@@ -46,9 +49,25 @@ export async function setRole(role: Role): Promise<{ ok: true } | { ok: false; e
     return { ok: false, error: 'Role is already set.' }
   }
 
+  // 1. Clerk first — it is the source of truth for role.
   await client.users.updateUser(userId, {
     publicMetadata: { ...user.publicMetadata, role },
   })
+
+  /**
+   * 2. Then mirror into Neon, immediately and in the same request.
+   *
+   * The user.updated webhook does this too, and normally would. But it's the ONLY other
+   * path, so until the webhook is configured (it needs a deployed URL, so it can't exist
+   * on day one) the mirror would stay on its 'student' default — and every guard reads
+   * the mirror. A coach would pick "coach", get written to Clerk, then be bounced off
+   * /coach by requireCoach() reading a stale row.
+   *
+   * This does not violate "never write a role to Neon without writing Clerk first" — it
+   * IS that rule: Clerk is written above, and this write is downstream of it. The
+   * webhook arriving later is idempotent, since it writes the same value.
+   */
+  await db.update(users).set({ role }).where(eq(users.clerkId, userId))
 
   return { ok: true }
 }
