@@ -96,7 +96,8 @@ function ReportRow({
 
       <div className="mt-4 flex flex-wrap gap-4 text-xs">
         {reported ? (
-          <Link href={`/admin/coaches`} className="text-slate underline underline-offset-4">
+          // Accounts, not coaches: a report can be filed against a student too.
+          <Link href="/admin/users" className="text-slate underline underline-offset-4">
             Manage this user
           </Link>
         ) : null}

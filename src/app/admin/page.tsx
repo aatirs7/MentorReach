@@ -52,6 +52,7 @@ export default async function AdminHome() {
       <nav className="mt-10 space-y-3">
         <AdminLink href="/admin/coaches" title="Coach approvals" blurb="Verify employers, approve, suspend." />
         <AdminLink href="/admin/reports" title="Reports" blurb="Trust & safety queue." />
+        <AdminLink href="/admin/users" title="Accounts" blurb="Suspend or reinstate any account." />
         <AdminLink href="/admin/integrations" title="Integrations" blurb="Which third-party keys are wired up." />
       </nav>
     </main>

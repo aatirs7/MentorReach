@@ -44,6 +44,7 @@ export default async function CoachSetupPage() {
                 headshotUrl: profile.headshotUrl,
                 linkedinUrl: profile.linkedinUrl,
                 employerNote: profile.employerNote,
+                calendlySchedulingUrl: profile.calendlySchedulingUrl,
                 offerings: offerings
                   .filter((o) => o.isActive)
                   .map((o) => ({ lengthMinutes: o.lengthMinutes, priceCents: o.priceCents })),

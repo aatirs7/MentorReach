@@ -46,6 +46,7 @@ export async function saveCoachProfile(
     headshotUrl: formData.get('headshotUrl') ?? '',
     linkedinUrl: formData.get('linkedinUrl'),
     employerNote: formData.get('employerNote') ?? '',
+    calendlySchedulingUrl: formData.get('calendlySchedulingUrl') ?? '',
     offerings,
   })
 
@@ -72,6 +73,7 @@ export async function saveCoachProfile(
     headshotUrl: v.headshotUrl || null,
     linkedinUrl: v.linkedinUrl,
     employerNote: v.employerNote || null,
+    calendlySchedulingUrl: v.calendlySchedulingUrl || null,
   }
 
   if (existing) {

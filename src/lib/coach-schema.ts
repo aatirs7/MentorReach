@@ -58,9 +58,36 @@ export const offeringSchema = z.object({
     .max(MAX_PRICE_CENTS, 'Maximum session price is $1,000'),
 })
 
+/**
+ * Spec §8/§9 — the coach's PUBLIC Calendly page, for the read-only "view schedule"
+ * embed. Distinct from the API user URI: the API URI can't be iframed and the public
+ * slug can't be derived from it, so the coach supplies this directly.
+ *
+ * Validated to calendly.com so we never iframe an arbitrary attacker-supplied origin.
+ */
+const calendlySchedulingUrl = z
+  .string()
+  .trim()
+  .refine(
+    (v) => {
+      if (!v) return true
+      try {
+        const u = new URL(v.startsWith('http') ? v : `https://${v}`)
+        return u.hostname.replace(/^www\./, '') === 'calendly.com'
+      } catch {
+        return false
+      }
+    },
+    { message: 'Must be a calendly.com link' },
+  )
+  .transform((v) => (v && !v.startsWith('http') ? `https://${v}` : v))
+  .optional()
+  .or(z.literal(''))
+
 export const coachProfileSchema = z.object({
   industry: z.string().trim().min(1, 'Pick your field').max(120),
   currentTitle: z.string().trim().min(1, 'Your current role is required').max(160),
+  calendlySchedulingUrl,
   bio: z
     .string()
     .trim()

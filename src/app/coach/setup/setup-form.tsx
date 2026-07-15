@@ -23,6 +23,7 @@ type Existing = {
   headshotUrl: string | null
   linkedinUrl: string
   employerNote: string | null
+  calendlySchedulingUrl: string | null
   offerings: Array<{ lengthMinutes: number; priceCents: number }>
 } | null
 
@@ -131,6 +132,20 @@ export function CoachSetupForm({ existing }: { existing: Existing }) {
         errors={err.headshotUrl}
       >
         <Input id="headshotUrl" name="headshotUrl" defaultValue={existing?.headshotUrl ?? ''} />
+      </Field>
+
+      <Field
+        label="Your Calendly link"
+        hint="Optional — students see a read-only preview of your availability. They’ll still book through us, and you’ll get a private link per paid session."
+        htmlFor="calendlySchedulingUrl"
+        errors={err.calendlySchedulingUrl}
+      >
+        <Input
+          id="calendlySchedulingUrl"
+          name="calendlySchedulingUrl"
+          defaultValue={existing?.calendlySchedulingUrl ?? ''}
+          placeholder="calendly.com/your-name"
+        />
       </Field>
 
       <Field
