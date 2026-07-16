@@ -69,6 +69,17 @@ export default async function PayoutsPage() {
 
   try {
     ready = await accountPayoutsReady(accountId)
+
+    // Mirror into the DB here too, not just from the account.updated webhook: a coach who
+    // finishes Stripe onboarding and comes back to this page gets published even if the
+    // webhook isn't configured yet.
+    if (ready !== profile.stripePayoutsEnabled) {
+      await db
+        .update(coachProfiles)
+        .set({ stripePayoutsEnabled: ready })
+        .where(eq(coachProfiles.id, profile.id))
+    }
+
     actionUrl = ready
       ? await createLoginLink(accountId)
       : await createAccountOnboardingLink(accountId)

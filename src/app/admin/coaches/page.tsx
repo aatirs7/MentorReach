@@ -1,106 +1,112 @@
-import { asc, desc, inArray } from 'drizzle-orm'
-import { PendingActions, StatusActions } from './review-actions'
+import { desc, inArray } from 'drizzle-orm'
+import { StatusActions } from './review-actions'
 import { Badge } from '@/components/ui/badge'
 import { Card } from '@/components/ui/card'
 import { db } from '@/db'
 import { coachOfferings, coachProfiles, users } from '@/db/schema'
 import { requireAdmin } from '@/lib/auth/guards'
+import { coachChecklist, isCoachLive } from '@/lib/coach-publish'
 import { formatPrice } from '@/lib/coach-schema'
 
-export const metadata = { title: 'Coach approvals' }
+export const metadata = { title: 'Coaches' }
 
 /**
- * Spec §12 — the admin approval queue, plus suspend/reinstate.
- *
- * §12 vetting: the LinkedIn URL is surfaced prominently because approving is supposed to
- * involve actually checking the stated employer against it.
+ * Admin roster. There's no approval queue anymore — coaches publish themselves once their
+ * checklist is complete. This is oversight: who's live, who's still setting up, who's
+ * suspended, and a suspend/reinstate control for safety.
  */
 export default async function AdminCoachesPage() {
   await requireAdmin()
 
   const profiles = await db.query.coachProfiles.findMany({
-    orderBy: [asc(coachProfiles.status), desc(coachProfiles.createdAt)],
+    orderBy: [desc(coachProfiles.createdAt)],
   })
 
-  const coachUsers = profiles.length
-    ? await db.query.users.findMany({ where: inArray(users.id, profiles.map((p) => p.userId)) })
-    : []
-
-  const offerings = profiles.length
-    ? await db.query.coachOfferings.findMany({
-        where: inArray(coachOfferings.coachId, profiles.map((p) => p.userId)),
-      })
-    : []
+  const [coachUsers, offerings] = profiles.length
+    ? await Promise.all([
+        db.query.users.findMany({ where: inArray(users.id, profiles.map((p) => p.userId)) }),
+        db.query.coachOfferings.findMany({
+          where: inArray(coachOfferings.coachId, profiles.map((p) => p.userId)),
+        }),
+      ])
+    : [[], []]
 
   const userById = new Map(coachUsers.map((u) => [u.id, u]))
 
-  const pending = profiles.filter((p) => p.status === 'pending')
-  const live = profiles.filter((p) => p.status !== 'pending')
+  const rows = profiles.map((p) => {
+    const coachOff = offerings.filter((o) => o.coachId === p.userId && o.isActive)
+    const publishInput = {
+      isSeed: p.isSeed,
+      status: p.status,
+      headshotUrl: p.headshotUrl,
+      currentTitle: p.currentTitle,
+      bio: p.bio,
+      hasActiveOffering: coachOff.length > 0,
+      calendlyUserUri: p.calendlyUserUri,
+      stripePayoutsEnabled: p.stripePayoutsEnabled,
+      handbookAckAt: p.handbookAckAt,
+    }
+    return {
+      profile: p,
+      user: userById.get(p.userId),
+      offerings: coachOff,
+      live: isCoachLive(publishInput),
+      remaining: coachChecklist(publishInput).filter((c) => !c.done),
+    }
+  })
+
+  const suspended = rows.filter((r) => r.profile.status === 'suspended')
+  const live = rows.filter((r) => r.live)
+  const incomplete = rows.filter((r) => !r.live && r.profile.status !== 'suspended')
 
   return (
     <main className="mx-auto w-full max-w-3xl flex-1 px-6 py-14">
       <div className="text-center">
         <p className="label-mono">Admin</p>
-        <h1 className="mt-3 text-4xl">Coach approvals</h1>
+        <h1 className="mt-3 text-4xl">Coaches</h1>
         <p className="mx-auto mt-3 max-w-prose text-slate">
-        Verify each coach&rsquo;s stated employer against their LinkedIn before approving.
-          Nobody is bookable until you do.
+          Coaches go live automatically when their checklist is complete. You can suspend
+          anyone for safety.
         </p>
       </div>
 
-      <section className="mt-10">
-        <h2 className="text-2xl">
-          Waiting for review{' '}
-          {pending.length > 0 ? <span className="text-slate">({pending.length})</span> : null}
-        </h2>
-
-        {pending.length === 0 ? (
-          <p className="mt-3 text-sm text-slate">Queue is clear.</p>
-        ) : (
-          <div className="mt-4 space-y-4">
-            {pending.map((p) => (
-              <CoachRow
-                key={p.id}
-                profile={p}
-                user={userById.get(p.userId)}
-                offerings={offerings.filter((o) => o.coachId === p.userId && o.isActive)}
-                pendingReview
-              />
-            ))}
-          </div>
-        )}
-      </section>
-
-      {live.length > 0 ? (
-        <section className="mt-12">
-          <h2 className="text-2xl">Everyone else</h2>
-          <div className="mt-4 space-y-4">
-            {live.map((p) => (
-              <CoachRow
-                key={p.id}
-                profile={p}
-                user={userById.get(p.userId)}
-                offerings={offerings.filter((o) => o.coachId === p.userId && o.isActive)}
-              />
-            ))}
-          </div>
-        </section>
-      ) : null}
+      <Section title="Live" rows={live} empty="No live coaches yet." />
+      <Section title="Still setting up" rows={incomplete} empty="Nobody mid-setup." />
+      {suspended.length > 0 ? <Section title="Suspended" rows={suspended} empty="" /> : null}
     </main>
   )
 }
 
-function CoachRow({
-  profile,
-  user,
-  offerings,
-  pendingReview,
-}: {
+type Row = {
   profile: typeof coachProfiles.$inferSelect
   user?: typeof users.$inferSelect
   offerings: Array<typeof coachOfferings.$inferSelect>
-  pendingReview?: boolean
-}) {
+  live: boolean
+  remaining: Array<{ label: string }>
+}
+
+function Section({ title, rows, empty }: { title: string; rows: Row[]; empty: string }) {
+  return (
+    <section className="mt-10">
+      <h2 className="text-2xl">
+        {title} {rows.length > 0 ? <span className="text-slate">({rows.length})</span> : null}
+      </h2>
+      {rows.length === 0 ? (
+        <p className="mt-3 text-sm text-slate">{empty}</p>
+      ) : (
+        <div className="mt-4 space-y-4">
+          {rows.map((r) => (
+            <CoachRow key={r.profile.id} {...r} />
+          ))}
+        </div>
+      )}
+    </section>
+  )
+}
+
+function CoachRow({ profile, user, offerings, live, remaining }: Row) {
+  const suspended = profile.status === 'suspended'
+
   return (
     <Card className="border-line/20 p-5">
       <div className="flex flex-wrap items-start justify-between gap-3">
@@ -109,8 +115,8 @@ function CoachRow({
           <p className="text-sm text-slate">{profile.currentTitle}</p>
           <p className="text-sm text-slate">{user?.email}</p>
         </div>
-        <Badge variant={profile.status === 'approved' ? 'default' : 'secondary'}>
-          {profile.status}
+        <Badge variant={suspended ? 'destructive' : live ? 'default' : 'secondary'}>
+          {suspended ? 'suspended' : live ? 'live' : 'incomplete'}
         </Badge>
       </div>
 
@@ -130,44 +136,37 @@ function CoachRow({
               : 'None'}
           </dd>
         </div>
-        <div className="sm:col-span-2">
-          <dt className="label-mono">LinkedIn: verify the employer</dt>
-          <dd className="mt-0.5">
-            <a
-              href={profile.linkedinUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-ink underline underline-offset-4"
-            >
-              {profile.linkedinUrl}
-            </a>
-          </dd>
-        </div>
+        {profile.linkedinUrl ? (
+          <div className="sm:col-span-2">
+            <dt className="label-mono">LinkedIn</dt>
+            <dd className="mt-0.5">
+              <a
+                href={profile.linkedinUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-ink underline underline-offset-4"
+              >
+                {profile.linkedinUrl}
+              </a>
+            </dd>
+          </div>
+        ) : null}
       </dl>
 
-      <div className="mt-4">
-        <p className="label-mono">Bio</p>
-        <p className="mt-1 text-sm leading-relaxed whitespace-pre-line text-ink/90">{profile.bio}</p>
-      </div>
-
-      {profile.employerNote ? (
-        <div className="mt-4">
-          <p className="label-mono">Employer note</p>
-          <p className="mt-1 text-sm text-slate">{profile.employerNote}</p>
-        </div>
+      {!live && !suspended && remaining.length > 0 ? (
+        <p className="mt-4 text-xs text-slate">
+          Still to do: {remaining.map((r) => r.label).join(' · ')}
+        </p>
       ) : null}
 
       <div className="mt-4 flex flex-wrap gap-3 text-xs text-slate">
-        <span>Stripe: {profile.stripeAccountId ? 'connected' : 'not set up'}</span>
-        <span>Calendly: {profile.calendlyUserUri ? 'connected' : 'not set up'}</span>
-        <span>Referral code: {profile.referralCode}</span>
+        <span>Photo: {profile.headshotUrl ? 'yes' : 'no'}</span>
+        <span>Stripe payouts: {profile.stripePayoutsEnabled ? 'ready' : 'no'}</span>
+        <span>Calendly: {profile.calendlyUserUri ? 'connected' : 'no'}</span>
+        <span>Handbook: {profile.handbookAckAt ? 'agreed' : 'no'}</span>
       </div>
 
-      {pendingReview ? (
-        <PendingActions profileId={profile.id} />
-      ) : (
-        <StatusActions profileId={profile.id} status={profile.status} />
-      )}
+      <StatusActions profileId={profile.id} suspended={suspended} />
     </Card>
   )
 }

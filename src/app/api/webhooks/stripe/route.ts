@@ -197,8 +197,13 @@ async function handleChargeRefunded(charge: Stripe.Charge) {
 }
 
 /**
- * Spec §10 — Express onboarding progress. A coach is only bookable once Stripe says
- * charges and payouts are enabled; this keeps our view of that current.
+ * Spec §10 — Express onboarding progress.
+ *
+ * A coach can only be paid once Stripe reports both charges and payouts enabled. We
+ * MIRROR that into coach_profiles.stripe_payouts_enabled so the "is this coach live?"
+ * check (and the publish checklist) stays a pure DB read — we can't call Stripe per coach
+ * inside a browse query. This is also what auto-publishes a coach the moment their Stripe
+ * onboarding finishes, with no admin step.
  */
 async function handleAccountUpdated(account: Stripe.Account) {
   const profile = await db.query.coachProfiles.findFirst({
@@ -207,7 +212,12 @@ async function handleAccountUpdated(account: Stripe.Account) {
 
   if (!profile) return
 
-  console.info(
-    `[stripe-webhook] account ${account.id} charges=${account.charges_enabled} payouts=${account.payouts_enabled}`,
-  )
+  const ready = Boolean(account.charges_enabled && account.payouts_enabled)
+
+  if (ready !== profile.stripePayoutsEnabled) {
+    await db
+      .update(coachProfiles)
+      .set({ stripePayoutsEnabled: ready })
+      .where(eq(coachProfiles.id, profile.id))
+  }
 }

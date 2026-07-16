@@ -21,10 +21,15 @@ Motto: "Own your trajectory."
    Enforced by `UNIQUE(coach_id, student_id)` on `coach_student_links` — there is
    physically nowhere to put a second commission value for a pair. All attribution logic
    lives in `src/lib/commission.ts` and nowhere else.
-3. **Students are gated behind the survey.** No browsing or booking until
-   `student_surveys.completed_at IS NOT NULL`.
-4. **Coaches are gated behind approval.** New profiles are `pending` (a DB default, not an
-   app decision) and invisible/unbookable until an admin approves.
+3. **Students are gated behind the survey — at BOOKING, not browsing.** Browse is public;
+   booking requires `student_surveys.completed_at IS NOT NULL`. (Intentional change from a
+   literal §2.3 — see docs/spec-coverage.md.)
+4. **Coaches self-publish; there is no approval gate.** A real coach's profile goes live
+   automatically once their checklist is complete (photo, field, role, bio, ≥1 offering,
+   Calendly, Stripe payouts, handbook ack) — all computed in `src/lib/coach-publish.ts`.
+   `coach_profiles.status` is now only an admin kill switch (`suspended`). Seed/demo
+   coaches are exempt (live unless suspended). This is an intentional change from the
+   spec's §2.4 approval gate — see docs/spec-coverage.md.
 
 ## Stack
 

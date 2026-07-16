@@ -1,6 +1,11 @@
 import type { NextConfig } from 'next'
 
 const nextConfig: NextConfig = {
+  experimental: {
+    // Coach headshot uploads go through a server action, so the default 1MB action body
+    // limit is too small for a phone photo. Matches the 8MB cap enforced in lib/storage.ts.
+    serverActions: { bodySizeLimit: '8mb' },
+  },
   images: {
     /**
      * ⚠️ PLACEHOLDER HOSTS — REMOVE WHEN REAL ASSETS LAND.
@@ -19,6 +24,8 @@ const nextConfig: NextConfig = {
       { protocol: 'https', hostname: 'i.pravatar.cc' },
       { protocol: 'https', hostname: 'picsum.photos' },
       { protocol: 'https', hostname: 'fastly.picsum.photos' },
+      // Real coach headshots, uploaded to Vercel Blob. This one STAYS — it's our storage.
+      { protocol: 'https', hostname: '*.public.blob.vercel-storage.com' },
     ],
   },
 }

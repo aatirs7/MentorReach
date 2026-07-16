@@ -51,17 +51,18 @@ export const coachProfiles = pgTable(
      *
      * This exists to make one rule enforceable in DATA rather than by discipline:
      * placeholder faces are for seed coaches only. A real profile must never render a
-     * generated face while the site claims every coach is verified against their
-     * employer — that would make the vetting promise a lie in the most visible way
-     * possible.
+     * generated/placeholder face — we tell students a session is a real conversation with
+     * a real person, and a stock face would make that false at the most visible point on
+     * the page. It's also what lets seed coaches stay live in browse without completing
+     * the real-coach publish checklist (see src/lib/coach-publish.ts).
      *
      * DEFAULT false, so a real coach cannot become seed by omission. See
-     * resolveHeadshot() in src/lib/headshot.ts, which is the enforcement point.
+     * resolveHeadshot() in src/lib/headshot.ts, the render-time enforcement point.
      */
     isSeed: boolean('is_seed').notNull().default(false),
 
-    /** Spec §12: required for vetting. Enforced in the schema, not just the form. */
-    linkedinUrl: text('linkedin_url').notNull(),
+    /** Optional. Useful context, not a verification gate — we no longer claim to verify. */
+    linkedinUrl: text('linkedin_url'),
 
     employerNote: text('employer_note'),
 
@@ -84,12 +85,31 @@ export const coachProfiles = pgTable(
      */
     calendlySchedulingUrl: text('calendly_scheduling_url'),
 
-    /** Spec §10 — Stripe Connect Express account. Nullable until onboarding completes. */
+    /** Spec §10 — Stripe Connect Express account. Nullable until onboarding starts. */
     stripeAccountId: text('stripe_account_id'),
 
     /**
-     * Hard rule §2.4 expressed as a DB default: new profiles are `pending` and
-     * invisible/unbookable. The app does not get to choose the initial status.
+     * Whether Stripe says this coach can actually be paid (charges_enabled &&
+     * payouts_enabled). Mirrored from Stripe by the account.updated webhook and by the
+     * payouts page, so the "is this coach live?" check stays a pure DB read — we can't
+     * call the Stripe API once per coach inside a browse query.
+     */
+    stripePayoutsEnabled: boolean('stripe_payouts_enabled').notNull().default(false),
+
+    /**
+     * When the coach acknowledged the Coach Handbook (/coach/handbook). Required before a
+     * real profile can publish. Same evidence pattern as sessions.policy_ack_at: proof the
+     * standards were shown and agreed to, captured at the moment of consent.
+     */
+    handbookAckAt: timestamp('handbook_ack_at', { withTimezone: true, mode: 'date' }),
+
+    /**
+     * status is now ONLY an admin kill switch: `suspended` takes a coach offline; anything
+     * else means "live if the publish checklist is complete" (src/lib/coach-publish.ts).
+     * The old pending → admin-approval gate is gone — a completed profile publishes
+     * itself, no manual step. `pending`/`approved` are both treated as "not suspended";
+     * the distinction is vestigial. DEFAULT stays `pending` so a new profile is never
+     * born suspended.
      */
     status: coachStatus('status').notNull().default('pending'),
 

@@ -8,7 +8,7 @@ import { parsePriceToCents } from '@/lib/coach-schema'
 export const metadata = {
   title: 'Browse coaches',
   description:
-    'Book time with people who already have the job you want. Every coach is verified against their stated employer.',
+    'Book time with people who already have the job you want. Every coach is hand-picked and personally reviewed before they join.',
 }
 
 /**
@@ -50,7 +50,7 @@ export default async function CoachesPage({
         <p className="label-mono">Coaches</p>
         <h1 className="mt-3 text-4xl">Find someone who&rsquo;s done it</h1>
         <p className="mx-auto mt-3 max-w-prose text-slate">
-          Every coach here has been reviewed and verified against their stated employer.
+          Every coach here is hand-picked and personally reviewed before they join.
         </p>
       </div>
 

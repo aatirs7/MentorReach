@@ -1,12 +1,14 @@
 'use server'
 
 import { and, eq, inArray } from 'drizzle-orm'
+import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
 import { db } from '@/db'
 import { coachOfferings, coachProfiles } from '@/db/schema'
 import { requireUser } from '@/lib/auth/guards'
 import { generateReferralCode } from '@/lib/auth/referral'
 import { coachProfileSchema } from '@/lib/coach-schema'
+import { UploadError, uploadHeadshot } from '@/lib/storage'
 
 export type CoachSetupState = {
   errors?: Record<string, string[]>
@@ -14,11 +16,15 @@ export type CoachSetupState = {
 }
 
 /**
- * Spec §5 — create or update a coach profile.
+ * Create or update a coach profile.
  *
- * Hard rule §2.4: status is NOT set here. It defaults to 'pending' in the database, and
- * only an admin can move it. An edit by an approved coach does not reset that — see the
- * explicit column list in the update below.
+ * There is NO approval step anymore. Saving these details creates (or updates) the
+ * profile; the profile publishes ITSELF once the whole checklist is complete (photo,
+ * Calendly, Stripe payouts, handbook — see src/lib/coach-publish.ts). `status` is not
+ * set here and stays at its DB default; only an admin ever sets `suspended`.
+ *
+ * Photo is handled by uploadHeadshotAction, not this form, so re-saving text can never
+ * wipe an uploaded photo. That's why headshotUrl is absent from the update below.
  */
 export async function saveCoachProfile(
   _prev: CoachSetupState,
@@ -43,8 +49,8 @@ export async function saveCoachProfile(
     industry: formData.get('industry'),
     currentTitle: formData.get('currentTitle'),
     bio: formData.get('bio'),
-    headshotUrl: formData.get('headshotUrl') ?? '',
-    linkedinUrl: formData.get('linkedinUrl'),
+    headshotUrl: '', // managed by uploadHeadshotAction; not part of this form
+    linkedinUrl: formData.get('linkedinUrl') ?? '',
     employerNote: formData.get('employerNote') ?? '',
     calendlySchedulingUrl: formData.get('calendlySchedulingUrl') ?? '',
     offerings,
@@ -66,33 +72,82 @@ export async function saveCoachProfile(
     where: eq(coachProfiles.userId, user.id),
   })
 
-  const profileValues = {
+  // §Handbook — required to publish. The checkbox sets the ack timestamp once; unchecking
+  // later doesn't revoke it (consent, like the booking policy ack). Captured here at the
+  // moment of consent.
+  const acked = formData.get('handbookAck') === 'true'
+  const handbookAckAt = existing?.handbookAckAt ?? (acked ? new Date() : null)
+
+  const textValues = {
     industry: v.industry,
     currentTitle: v.currentTitle,
     bio: v.bio,
-    headshotUrl: v.headshotUrl || null,
-    linkedinUrl: v.linkedinUrl,
+    linkedinUrl: v.linkedinUrl || null,
     employerNote: v.employerNote || null,
     calendlySchedulingUrl: v.calendlySchedulingUrl || null,
+    handbookAckAt,
   }
 
   if (existing) {
-    // Note the explicit column list: status, approvedAt, approvedBy and referralCode are
-    // deliberately absent so a profile edit can never launder an unapproved coach into
-    // an approved one, or churn a referral code that's already been shared.
-    await db.update(coachProfiles).set(profileValues).where(eq(coachProfiles.id, existing.id))
+    // Explicit column list: status/approvedAt/approvedBy/referralCode/headshotUrl are
+    // deliberately absent — an edit can't change publication state, churn a shared
+    // referral code, or wipe an uploaded photo.
+    await db.update(coachProfiles).set(textValues).where(eq(coachProfiles.id, existing.id))
   } else {
     await db.insert(coachProfiles).values({
-      ...profileValues,
+      ...textValues,
       userId: user.id,
       referralCode: await uniqueReferralCode(user.fullName),
-      // status intentionally omitted — the DB default ('pending') is hard rule §2.4.
     })
   }
 
   await syncOfferings(user.id, v.offerings)
 
   redirect('/coach')
+}
+
+/**
+ * Upload the coach's own headshot (Vercel Blob), separately from the text form so a large
+ * image can't take the text save down with it, and vice versa.
+ *
+ * A real coach MUST upload a photo to publish. This produces a blob URL (never a
+ * placeholder host), so it always satisfies hasRealPhoto(); the is_seed guardrail still
+ * means a placeholder could never render on a real profile even if one slipped in.
+ */
+export async function uploadHeadshotAction(
+  _prev: CoachSetupState,
+  formData: FormData,
+): Promise<CoachSetupState> {
+  const user = await requireUser()
+  if (user.role !== 'coach') return { message: 'Only coaches can upload a headshot.' }
+
+  const profile = await db.query.coachProfiles.findFirst({
+    where: eq(coachProfiles.userId, user.id),
+  })
+  if (!profile) {
+    return { message: 'Save your details first, then add a photo.' }
+  }
+
+  const file = formData.get('photo')
+  if (!(file instanceof File) || file.size === 0) {
+    return { errors: { photo: ['Choose a photo to upload.'] } }
+  }
+
+  let url: string
+  try {
+    url = await uploadHeadshot(user.id, file)
+  } catch (err) {
+    if (err instanceof UploadError) return { errors: { photo: [err.message] } }
+    console.error('[coach-setup] headshot upload failed', err)
+    return { errors: { photo: ['Upload failed. Please try again.'] } }
+  }
+
+  await db.update(coachProfiles).set({ headshotUrl: url }).where(eq(coachProfiles.id, profile.id))
+
+  revalidatePath('/coach/setup')
+  revalidatePath('/coach')
+
+  return { message: 'Photo saved.' }
 }
 
 /**

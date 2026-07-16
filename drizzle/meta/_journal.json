@@ -36,6 +36,13 @@
       "when": 1784151049421,
       "tag": "0004_legal_venom",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1784242164384,
+      "tag": "0005_mighty_doomsday",
+      "breakpoints": true
     }
   ]
 }

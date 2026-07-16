@@ -68,6 +68,10 @@ const schema = z.object({
   /** e.g. "Trajectory Coaching <hello@trajectorycoaches.com>" */
   EMAIL_FROM: optionalKey(),
 
+  /** Vercel Blob store token — enables coach headshot uploads. Auto-injected on Vercel
+   *  when a Blob store is connected. */
+  BLOB_READ_WRITE_TOKEN: optionalKey(),
+
   /** Protects /api/cron. Required in production for the §11 completion job. */
   CRON_SECRET: optionalKey(),
 
@@ -177,6 +181,7 @@ export function integrationStatus() {
     calendlyWebhook: Boolean(env.CALENDLY_WEBHOOK_SIGNING_KEY),
     email: Boolean(env.RESEND_API_KEY && env.EMAIL_FROM),
     cron: Boolean(env.CRON_SECRET),
+    storage: Boolean(env.BLOB_READ_WRITE_TOKEN),
   }
 }
 

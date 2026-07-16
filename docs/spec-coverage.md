@@ -27,6 +27,33 @@ on trust. Sections refer to the spec.
 | §11 State machine & policy | `lib/sessions.ts` (pure, tested), `lib/cancel.ts`, `app/api/cron/route.ts`. |
 | §12 Dashboards, notes, notifications, trust & safety | `app/sessions`, `app/notifications`, `app/report`, `app/admin/*`, `lib/notifications.ts`, `lib/email/*`. |
 
+## Intentional change: coaches self-publish, no approval gate
+
+**Deviates from §2.4 / §3.** The spec gates coaches behind manual admin approval (`pending`
+→ approved). We personally select coaches by invitation and no longer run any automated
+verification, so a review *queue* buys nothing and just delays invited coaches.
+
+**Now:** a real coach's profile publishes ITSELF the moment its checklist is complete —
+photo (their own upload), field, current role, bio, ≥1 session length + price, Calendly
+connected, Stripe payouts enabled, and Coach Handbook acknowledged. All computed in
+`src/lib/coach-publish.ts` (`isCoachLive`), mirrored as a SQL condition in `lib/browse.ts`
+so browse and the checklist can't disagree. `coach_profiles.status` is now only an admin
+kill switch (`suspended`); nothing blocks initial go-live.
+
+**Verification claims removed.** No page says coaches are "verified against an employer".
+The signal is honest and softer: "Hand-picked. We personally review every coach before
+they join." LinkedIn is now optional context, not a gate.
+
+**The photo guardrail is load-bearing here.** A real coach cannot publish without their
+own uploaded photo, and `is_seed` + `resolveHeadshot()`/`hasRealPhoto()` mean a
+placeholder face can never satisfy that requirement or render on a real profile — covered
+by `src/lib/coach-publish.test.ts` and `src/lib/headshot.test.ts`. Photo upload uses Vercel
+Blob (optional integration: `BLOB_READ_WRITE_TOKEN`); real coaches can't complete the
+checklist until it's connected, the same way booking needs Stripe.
+
+Seed/demo coaches are exempt from the checklist (live unless suspended) — they exist to
+populate browse and carry placeholder faces, which is why `is_seed` gates both.
+
 ## Intentional change: browse is public, booking is gated
 
 **Deviates from a literal §2.3 / §3.** §3 says middleware "blocks students without a

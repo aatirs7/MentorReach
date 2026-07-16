@@ -5,9 +5,9 @@
  * `users.id`, never `coach_profiles.id`. Join to coach_profiles via its `user_id`.
  * See the header comment in ./users.ts.
  *
- * The two constraints that encode spec §2's hard rules:
- *   - UNIQUE(coach_id, student_id) on coach_student_links  → §2.2 frozen commission
- *   - coach_profiles.status DEFAULT 'pending'              → §2.4 approval gating
+ * §2.2's hard rule is encoded by UNIQUE(coach_id, student_id) on coach_student_links
+ * (frozen commission). §2.4's approval gate was intentionally dropped — coaches now
+ * self-publish once complete; see src/lib/coach-publish.ts and docs/spec-coverage.md.
  */
 
 export * from './enums'
@@ -17,6 +17,7 @@ export * from './coaches'
 export * from './links'
 export * from './sessions'
 export * from './trust'
+export * from './tasks'
 
 /*
  * DEFERRED — spec §4 "Phase 1.5":

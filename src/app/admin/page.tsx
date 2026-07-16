@@ -14,8 +14,8 @@ export const dynamic = 'force-dynamic'
 export default async function AdminHome() {
   await requireAdmin()
 
-  const [pendingCoaches, openReports, allSessions] = await Promise.all([
-    db.select({ id: coachProfiles.id }).from(coachProfiles).where(eq(coachProfiles.status, 'pending')),
+  const [allCoaches, openReports, allSessions] = await Promise.all([
+    db.select({ id: coachProfiles.id }).from(coachProfiles),
     db.select({ id: reports.id }).from(reports).where(eq(reports.status, 'open')),
     db
       .select({ commissionCents: sessions.commissionCents, status: sessions.status })
@@ -46,7 +46,7 @@ export default async function AdminHome() {
       ) : null}
 
       <div className="mt-8 grid gap-5 sm:grid-cols-3">
-        <Stat label="Coaches awaiting review" value={String(pendingCoaches.length)} href="/admin/coaches" />
+        <Stat label="Coaches" value={String(allCoaches.length)} href="/admin/coaches" />
         <Stat label="Open reports" value={String(openReports.length)} href="/admin/reports" />
         <Stat label="Commission booked" value={formatPrice(grossCommission)} href="/admin/integrations" />
       </div>

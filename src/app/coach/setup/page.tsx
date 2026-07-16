@@ -7,7 +7,7 @@ import { requireUser } from '@/lib/auth/guards'
 
 export const metadata = { title: 'Set up your profile' }
 
-/** Spec §5 — coach profile setup. New profiles land in `pending` (§2.4). */
+/** Coach profile setup. No approval step — the profile publishes itself once complete. */
 export default async function CoachSetupPage() {
   const user = await requireUser()
 
@@ -25,13 +25,13 @@ export default async function CoachSetupPage() {
   return (
     <main className="mx-auto w-full max-w-2xl flex-1 px-6 py-16">
       <div className="text-center">
-        <p className="label-mono">{profile ? 'Your profile' : 'Step 2 of 2'}</p>
+        <p className="label-mono">{profile ? 'Your profile' : 'Get set up'}</p>
         <h1 className="mt-3 text-4xl">
           {profile ? 'Edit your profile' : 'Set up your coaching profile'}
         </h1>
         <p className="mx-auto mt-3 max-w-prose text-slate">
-        {profile
-          ? 'Changes go live immediately. Your approval status is unaffected.'
+          {profile
+            ? 'Changes go live immediately.'
             : 'Students see this before they book. Be specific about what you can actually help with.'}
         </p>
       </div>
@@ -47,6 +47,7 @@ export default async function CoachSetupPage() {
                 linkedinUrl: profile.linkedinUrl,
                 employerNote: profile.employerNote,
                 calendlySchedulingUrl: profile.calendlySchedulingUrl,
+                handbookAcked: Boolean(profile.handbookAckAt),
                 offerings: offerings
                   .filter((o) => o.isActive)
                   .map((o) => ({ lengthMinutes: o.lengthMinutes, priceCents: o.priceCents })),

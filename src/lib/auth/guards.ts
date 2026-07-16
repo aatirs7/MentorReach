@@ -48,9 +48,10 @@ export async function requireStudent(): Promise<DbUser> {
 export type CoachContext = { user: DbUser; profile: typeof coachProfiles.$inferSelect }
 
 /**
- * A coach with a profile. Does NOT require approval — a pending coach still needs to
- * reach their own dashboard to see status and finish setup. Use requireApprovedCoach()
- * for anything that implies being bookable.
+ * A coach with a profile. Any coach reaches their own dashboard regardless of whether
+ * they're published yet — that's where the setup checklist lives. Live-ness (published
+ * and bookable) is computed from completeness, not stored as a role gate; see
+ * src/lib/coach-publish.ts.
  */
 export async function requireCoach(): Promise<CoachContext> {
   const user = await requireUser()
@@ -65,10 +66,10 @@ export async function requireCoach(): Promise<CoachContext> {
   return { user, profile }
 }
 
-/** Hard rule §2.4: unapproved coaches are not live. */
-export async function requireApprovedCoach(): Promise<CoachContext> {
+/** A coach who isn't suspended. Suspension is the only admin kill switch. */
+export async function requireActiveCoach(): Promise<CoachContext> {
   const ctx = await requireCoach()
-  if (ctx.profile.status !== 'approved') redirect('/coach')
+  if (ctx.profile.status === 'suspended') redirect('/coach')
   return ctx
 }
 

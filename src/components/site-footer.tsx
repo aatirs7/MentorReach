@@ -29,6 +29,9 @@ export function SiteFooter() {
             <Link href="/sign-up" className="block text-paper/70 hover:text-paper">
               Become a coach
             </Link>
+            <Link href="/coach/handbook" className="block text-paper/70 hover:text-paper">
+              Coach handbook
+            </Link>
             <Link href="/coach" className="block text-paper/70 hover:text-paper">
               Your coaching
             </Link>

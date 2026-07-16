@@ -117,7 +117,7 @@ export default async function Home() {
               <ol className="mt-6 space-y-6">
                 {[
                   { n: '01', t: 'Tell us where you’re headed', d: 'A short survey covering your year, your field, and what you need.' },
-                  { n: '02', t: 'Pick someone who’s been there', d: 'Every coach is verified against their stated employer.' },
+                  { n: '02', t: 'Pick someone who’s been there', d: 'Pick someone who’s actually done the thing you’re aiming for.' },
                   { n: '03', t: 'Book, pay, and talk', d: 'Pay securely, pick a time. Free cancellation up to 24 hours before.' },
                 ].map((s) => (
                   <li key={s.n} className="flex gap-4">
@@ -137,10 +137,10 @@ export default async function Home() {
       {/* ----------------------------------------------------------- COACHES */}
       {featured.length > 0 ? (
         <section className="mx-auto w-full max-w-5xl px-6 py-24 text-center">
-          <p className="label-mono">Verified coaches</p>
+          <p className="label-mono">Our coaches</p>
           <h2 className="text-section mt-2">People who&rsquo;ve done it</h2>
           <p className="mx-auto mt-4 max-w-md text-slate">
-            Every one of them has been checked against the employer they claim.
+            Hand-picked. We personally review every coach before they join.
           </p>
 
           {/*
@@ -199,7 +199,7 @@ export default async function Home() {
       <section className="border-b border-line/15 bg-sand-deep">
         <div className="mx-auto grid w-full max-w-5xl gap-10 px-6 py-20 text-center sm:grid-cols-3">
           {[
-            { t: 'Every coach is vetted', d: 'We verify each coach’s stated employer against their LinkedIn before their profile goes live.' },
+            { t: 'Hand-picked', d: 'We personally review every coach before they join.' },
             { t: 'Paid on-platform', d: 'Payment runs through Stripe. No off-platform arrangements, and no chasing anyone for an invoice.' },
             { t: TRUST_BLOCK_TITLE, d: TRUST_BLOCK_BODY },
           ].map((f) => (

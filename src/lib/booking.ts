@@ -113,13 +113,13 @@ export async function createCheckout(params: {
 
   if (!coach || !profile) throw new BookingError('Coach not found.')
 
-  // Hard rule §2.4 — an unapproved coach is not bookable, enforced at the money path
-  // and not only in the browse query.
-  if (profile.status !== 'approved') {
+  // A suspended coach is never bookable, enforced at the money path and not only in the
+  // browse query. (Everything else below checks the specific setup the charge needs.)
+  if (profile.status === 'suspended') {
     throw new BookingError('This coach is not currently accepting sessions.')
   }
 
-  if (!profile.stripeAccountId) {
+  if (!profile.stripeAccountId || !profile.stripePayoutsEnabled) {
     throw new BookingError('This coach has not finished setting up payouts yet.')
   }
 

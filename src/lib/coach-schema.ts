@@ -14,21 +14,11 @@ import { z } from 'zod'
  * filtering for it would not find the right coach under a generic tech label.
  */
 export const INDUSTRIES = [
-  'Investment banking',
-  'Private equity',
-  'Consulting',
-  'Software engineering',
+  'Financial Services',
+  'Technology',
+  'Engineering',
+  'Creative & Media',
   'Cybersecurity',
-  'Product management',
-  'Data science',
-  'Medicine',
-  'Law',
-  'Marketing',
-  'Design',
-  'Academia & research',
-  'Entrepreneurship',
-  'Nonprofit & policy',
-  'Other',
 ] as const
 
 /** Spec §5/§9 — Calendly event types are created to match these. */
@@ -38,15 +28,16 @@ const MIN_PRICE_CENTS = 500 // $5 — below this Stripe fees eat the whole trans
 const MAX_PRICE_CENTS = 100_000 // $1,000 — a typo guard, not a policy
 
 /**
- * LinkedIn is required for vetting (§12) and NOT NULL in the schema. Validate the host
- * rather than a loose regex: the whole point is that an admin can actually check it.
+ * LinkedIn is now OPTIONAL. We select coaches personally by invitation and no longer
+ * claim to verify anyone's employer, so this is just useful context, not a gate. When
+ * present it must be a linkedin.com URL; blank is fine.
  */
 const linkedinUrl = z
   .string()
   .trim()
-  .min(1, 'LinkedIn URL is required')
   .refine(
     (v) => {
+      if (!v) return true
       try {
         const u = new URL(v.startsWith('http') ? v : `https://${v}`)
         return u.hostname.replace(/^www\./, '').endsWith('linkedin.com')
@@ -56,7 +47,9 @@ const linkedinUrl = z
     },
     { message: 'Must be a linkedin.com URL' },
   )
-  .transform((v) => (v.startsWith('http') ? v : `https://${v}`))
+  .transform((v) => (v && !v.startsWith('http') ? `https://${v}` : v))
+  .optional()
+  .or(z.literal(''))
 
 export const offeringSchema = z.object({
   lengthMinutes: z.coerce.number().int().refine((v) => SESSION_LENGTHS.includes(v as 30 | 45 | 60), {
