@@ -11,6 +11,8 @@ export type CoachCardData = {
   isSeed: boolean
   currentTitle: string
   industry: string
+  /** Shown (truncated) on the browse row, which has space for it; not on the tile. */
+  bio: string
   specialties: string[]
   startingPriceCents: number
   lengths: number[]
