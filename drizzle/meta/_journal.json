@@ -43,6 +43,13 @@
       "when": 1784242164384,
       "tag": "0005_mighty_doomsday",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1784326618398,
+      "tag": "0006_black_black_bird",
+      "breakpoints": true
     }
   ]
 }

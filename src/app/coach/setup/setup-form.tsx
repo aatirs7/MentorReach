@@ -26,7 +26,8 @@ type Existing = {
   linkedinUrl: string | null
   employerNote: string | null
   calendlySchedulingUrl: string | null
-  handbookAcked: boolean
+  handbookSignedName: string | null
+  handbookSignedAt: string | null
   offerings: Array<{ lengthMinutes: number; priceCents: number }>
 } | null
 
@@ -263,27 +264,43 @@ export function CoachSetupForm({ existing }: { existing: Existing }) {
           </div>
         </Field>
 
-        {/* Handbook agreement — required to publish. */}
-        <div className="border-t border-line/15 pt-7">
-          <div className="mx-auto flex max-w-md items-start gap-3">
-            <Checkbox
-              id="handbookAck"
-              name="handbookAck"
-              value="true"
-              defaultChecked={existing?.handbookAcked ?? false}
-              className="mt-0.5"
-            />
-            <Label htmlFor="handbookAck" className="text-sm leading-snug font-normal text-ink">
-              I have read and agree to the{' '}
-              <Link
-                href="/coach/handbook"
-                target="_blank"
-                className="underline decoration-gold underline-offset-4"
-              >
-                Coach Handbook
-              </Link>
-              .
-            </Label>
+        {/* Handbook agreement — a typed signature, required to publish and reviewable in
+            admin. Once signed it's locked; re-editing the form never re-signs. */}
+        <div className="border-t border-line/15 pt-7 text-center">
+          <Label className="text-base font-normal text-ink">Sign the Coach Handbook</Label>
+          <p className="mx-auto mt-1 max-w-md text-sm text-slate">
+            Read the{' '}
+            <Link
+              href="/coach/handbook"
+              target="_blank"
+              className="underline decoration-gold underline-offset-4"
+            >
+              Coach Handbook
+            </Link>
+            , then type your full legal name to agree to it.
+          </p>
+
+          <div className="mx-auto mt-4 w-full max-w-md text-left">
+            {existing?.handbookSignedName ? (
+              <p className="rounded-lg border border-line/20 bg-secondary p-3 text-sm text-slate">
+                Signed by <span className="font-medium text-ink">{existing.handbookSignedName}</span>
+                {existing.handbookSignedAt ? (
+                  <> on {new Date(existing.handbookSignedAt).toLocaleDateString('en-US', { dateStyle: 'long' })}</>
+                ) : null}
+                .
+              </p>
+            ) : (
+              <>
+                <Input
+                  name="handbookSignedName"
+                  placeholder="Your full legal name"
+                  aria-label="Type your full legal name to sign the Coach Handbook"
+                />
+                <p className="mt-2 text-xs text-slate">
+                  Typing your name here is your signature and agreement to the handbook.
+                </p>
+              </>
+            )}
           </div>
         </div>
 

@@ -8,6 +8,7 @@ import { coachOfferings, coachProfiles } from '@/db/schema'
 import { requireUser } from '@/lib/auth/guards'
 import { generateReferralCode } from '@/lib/auth/referral'
 import { coachProfileSchema } from '@/lib/coach-schema'
+import { AGREEMENT_VERSION } from '@/lib/coach-publish'
 import { UploadError, uploadHeadshot } from '@/lib/storage'
 
 export type CoachSetupState = {
@@ -72,11 +73,21 @@ export async function saveCoachProfile(
     where: eq(coachProfiles.userId, user.id),
   })
 
-  // §Handbook — required to publish. The checkbox sets the ack timestamp once; unchecking
-  // later doesn't revoke it (consent, like the booking policy ack). Captured here at the
-  // moment of consent.
-  const acked = formData.get('handbookAck') === 'true'
-  const handbookAckAt = existing?.handbookAckAt ?? (acked ? new Date() : null)
+  // Handbook agreement — required to publish. The coach types their full legal name to
+  // sign; that captures the consent timestamp, the signed name, and the version once.
+  // Re-editing the form later never re-signs or overwrites the original signature
+  // (consent, like the booking policy ack), so it's reviewable in admin unchanged.
+  const signedNameRaw = String(formData.get('handbookSignedName') ?? '').trim()
+  const alreadySigned = Boolean(existing?.handbookAckAt)
+
+  const signature =
+    alreadySigned || !signedNameRaw
+      ? {}
+      : {
+          handbookAckAt: new Date(),
+          handbookSignedName: signedNameRaw.slice(0, 120),
+          handbookVersion: AGREEMENT_VERSION,
+        }
 
   const textValues = {
     industry: v.industry,
@@ -85,7 +96,7 @@ export async function saveCoachProfile(
     linkedinUrl: v.linkedinUrl || null,
     employerNote: v.employerNote || null,
     calendlySchedulingUrl: v.calendlySchedulingUrl || null,
-    handbookAckAt,
+    ...signature,
   }
 
   if (existing) {

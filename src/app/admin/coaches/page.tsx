@@ -1,4 +1,5 @@
 import { desc, inArray } from 'drizzle-orm'
+import Link from 'next/link'
 import { StatusActions } from './review-actions'
 import { Badge } from '@/components/ui/badge'
 import { Card } from '@/components/ui/card'
@@ -111,7 +112,14 @@ function CoachRow({ profile, user, offerings, live, remaining }: Row) {
     <Card className="border-line/20 p-5">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <h3 className="text-lg leading-snug">{user?.fullName ?? 'Unnamed coach'}</h3>
+          <h3 className="text-lg leading-snug">
+            <Link
+              href={`/admin/coaches/${profile.userId}`}
+              className="underline decoration-transparent underline-offset-4 transition-colors hover:decoration-gold"
+            >
+              {user?.fullName ?? 'Unnamed coach'}
+            </Link>
+          </h3>
           <p className="text-sm text-slate">{profile.currentTitle}</p>
           <p className="text-sm text-slate">{user?.email}</p>
         </div>
@@ -159,11 +167,17 @@ function CoachRow({ profile, user, offerings, live, remaining }: Row) {
         </p>
       ) : null}
 
-      <div className="mt-4 flex flex-wrap gap-3 text-xs text-slate">
+      <div className="mt-4 flex flex-wrap items-center gap-x-3 gap-y-2 text-xs text-slate">
         <span>Photo: {profile.headshotUrl ? 'yes' : 'no'}</span>
         <span>Stripe payouts: {profile.stripePayoutsEnabled ? 'ready' : 'no'}</span>
         <span>Calendly: {profile.calendlyUserUri ? 'connected' : 'no'}</span>
-        <span>Handbook: {profile.handbookAckAt ? 'agreed' : 'no'}</span>
+        <span>Agreement: {profile.handbookAckAt ? 'signed' : 'not signed'}</span>
+        <Link
+          href={`/admin/coaches/${profile.userId}`}
+          className="ml-auto text-sm text-slate underline decoration-gold underline-offset-4 hover:text-ink"
+        >
+          Review coach
+        </Link>
       </div>
 
       <StatusActions profileId={profile.id} suspended={suspended} />

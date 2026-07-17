@@ -1,6 +1,13 @@
 import { isPlaceholderImage } from './headshot'
 
 /**
+ * The current Coach Handbook / agreement version. Bump when the handbook materially
+ * changes and you want coaches to re-sign; stored on each signature so admin can see
+ * which version a coach agreed to.
+ */
+export const AGREEMENT_VERSION = '2026-07'
+
+/**
  * Coach publish model (self-serve, no approval gate).
  *
  * A real coach's profile publishes itself the moment the checklist below is complete —

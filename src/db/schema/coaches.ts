@@ -97,11 +97,19 @@ export const coachProfiles = pgTable(
     stripePayoutsEnabled: boolean('stripe_payouts_enabled').notNull().default(false),
 
     /**
-     * When the coach acknowledged the Coach Handbook (/coach/handbook). Required before a
-     * real profile can publish. Same evidence pattern as sessions.policy_ack_at: proof the
-     * standards were shown and agreed to, captured at the moment of consent.
+     * The coach's signed agreement to the Coach Handbook (/coach/handbook), captured at
+     * onboarding and reviewable in admin. Required before a real profile can publish.
+     *
+     *   handbookAckAt      when they signed (the consent timestamp; also the checklist gate)
+     *   handbookSignedName the full legal name they typed as their signature
+     *   handbookVersion    which handbook version they agreed to (AGREEMENT_VERSION)
+     *
+     * Same evidence pattern as sessions.policy_ack_at: proof the standards were shown and
+     * agreed to, at the moment of consent. Nullable only because seed/admin rows skip it.
      */
     handbookAckAt: timestamp('handbook_ack_at', { withTimezone: true, mode: 'date' }),
+    handbookSignedName: text('handbook_signed_name'),
+    handbookVersion: text('handbook_version'),
 
     /**
      * status is now ONLY an admin kill switch: `suspended` takes a coach offline; anything
