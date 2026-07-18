@@ -17,17 +17,17 @@ export default async function CoachAvailabilityPage() {
   ])
 
   return (
-    <main className="mx-auto w-full max-w-2xl flex-1 px-6 py-14">
-      <div className="text-center">
+    <main className="w-full max-w-2xl flex-1">
+      <div>
         <p className="label-mono">Scheduling</p>
-        <h1 className="mt-3 text-4xl">Your availability</h1>
-        <p className="mx-auto mt-3 max-w-prose text-slate">
+        <h1 className="mt-2 text-3xl sm:text-4xl">Your availability</h1>
+        <p className="mt-2 max-w-prose text-slate">
           Set the hours you&rsquo;re open to coach. Students book a Zoom session directly into these
           times — we create the meeting for you.
         </p>
       </div>
 
-      <div className="mt-10">
+      <div className="mt-8">
         <AvailabilityEditor
           rules={rules.map((r) => ({ id: r.id, weekday: r.weekday, startMinute: r.startMinute, endMinute: r.endMinute }))}
           blackouts={blackouts.map((b) => ({ id: b.id, day: b.day }))}

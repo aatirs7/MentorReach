@@ -55,19 +55,28 @@ export default async function CoachHome() {
   const referralUrl = `${env.NEXT_PUBLIC_APP_URL}/r/${profile.referralCode}`
 
   return (
-    <main className="mx-auto w-full max-w-3xl flex-1 px-6 py-14">
-      <div className="text-center">
-        <p className="label-mono">Coaching</p>
-        <h1 className="mt-3 text-4xl">
-          {suspended ? 'Profile paused' : live ? 'You’re live' : 'Almost there'}
-        </h1>
-        <p className="mx-auto mt-3 max-w-prose text-slate">
-          {suspended
-            ? 'Your profile isn’t currently visible to students. If you think that’s a mistake, get in touch.'
-            : live
-              ? 'Students can find and book you. Everything below is done.'
-              : `You’re ${remaining} step${remaining === 1 ? '' : 's'} from going live. Finish these and your profile publishes automatically — no waiting on approval.`}
-        </p>
+    <main className="flex-1">
+      <div className="flex flex-wrap items-start justify-between gap-4">
+        <div>
+          <div className="flex items-center gap-2.5">
+            <h1 className="text-3xl sm:text-4xl">
+              {suspended ? 'Profile paused' : live ? 'You’re live' : 'Almost there'}
+            </h1>
+            <Badge variant={suspended ? 'destructive' : live ? 'default' : 'secondary'}>
+              {suspended ? 'Paused' : live ? 'Live' : `${remaining} to go`}
+            </Badge>
+          </div>
+          <p className="mt-2 max-w-prose text-slate">
+            {suspended
+              ? 'Your profile isn’t currently visible to students. If you think that’s a mistake, get in touch.'
+              : live
+                ? 'Students can find and book you. Everything below is done.'
+                : `You’re ${remaining} step${remaining === 1 ? '' : 's'} from going live. Finish these and your profile publishes automatically — no waiting on approval.`}
+          </p>
+        </div>
+        <Badge variant="secondary" className="mt-1">
+          {profile.industry}
+        </Badge>
       </div>
 
       {!suspended ? (
@@ -94,9 +103,14 @@ export default async function CoachHome() {
         </Card>
       ) : null}
 
-      <div className="mt-6 grid gap-6 sm:grid-cols-2">
+      <div className="mt-6 grid gap-6 lg:grid-cols-2">
         <Card className="border-line/20 p-6">
-          <p className="label-mono">Your sessions</p>
+          <div className="flex items-center justify-between">
+            <p className="label-mono">Your sessions</p>
+            <Button asChild size="sm" variant="ghost" className="h-auto px-0 text-slate">
+              <Link href="/coach/setup">Edit</Link>
+            </Button>
+          </div>
           <div className="mt-3 space-y-1.5">
             {active.length ? (
               active
@@ -128,25 +142,6 @@ export default async function CoachHome() {
           </code>
         </Card>
       </div>
-
-      <div className="mt-6 flex flex-wrap gap-3">
-        <Button asChild variant="outline">
-          <Link href="/sessions">View your sessions</Link>
-        </Button>
-        <Button asChild variant="ghost">
-          <Link href="/coach/payouts">Payouts</Link>
-        </Button>
-        <Button asChild variant="ghost">
-          <Link href="/coach/handbook">Coach handbook</Link>
-        </Button>
-        <Button asChild variant="ghost">
-          <Link href="/coach/resources">Resources</Link>
-        </Button>
-      </div>
-
-      <p className="mt-10 text-center">
-        <Badge variant="secondary">{profile.industry}</Badge>
-      </p>
     </main>
   )
 }
