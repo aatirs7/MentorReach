@@ -28,7 +28,8 @@ export type CoachPublishInput = {
   currentTitle: string | null
   bio: string | null
   hasActiveOffering: boolean
-  calendlyUserUri: string | null
+  /** True when the coach has set at least one native availability rule (§9 scheduler). */
+  hasAvailability: boolean
   stripePayoutsEnabled: boolean
   handbookAckAt: Date | null
 }
@@ -70,7 +71,7 @@ export function coachChecklist(input: CoachPublishInput): ChecklistItem[] {
     { key: 'role', label: 'Add your current role', done: Boolean(input.currentTitle?.trim()) },
     { key: 'bio', label: 'Write your bio', done: Boolean(input.bio?.trim()) },
     { key: 'offering', label: 'Set at least one session length and price', done: input.hasActiveOffering },
-    { key: 'calendar', label: 'Connect your calendar', done: Boolean(input.calendlyUserUri) },
+    { key: 'calendar', label: 'Set your availability', done: input.hasAvailability },
     { key: 'payouts', label: 'Set up payouts with Stripe', done: input.stripePayoutsEnabled },
     { key: 'handbook', label: 'Read and agree to the Coach Handbook', done: Boolean(input.handbookAckAt) },
   ]

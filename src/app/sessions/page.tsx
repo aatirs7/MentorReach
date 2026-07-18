@@ -69,8 +69,7 @@ export default async function SessionsPage() {
       counterpartyName:
         personById.get(counterpartyId)?.fullName ??
         (viewerRole === 'coach' ? 'Your student' : 'Your coach'),
-      // The single-use link isn't persisted; /book/complete re-mints it on demand.
-      scheduleUrl: r.status === 'paid_unscheduled' ? `/book/complete?session=${r.id}` : null,
+      zoomJoinUrl: r.zoomJoinUrl,
       notes: notes
         .filter((n) => n.sessionId === r.id)
         .map((n) => ({ id: n.id, body: n.body, createdAt: n.createdAt.toISOString() })),

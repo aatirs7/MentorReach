@@ -90,14 +90,16 @@ export function BookingConfirmedEmail(props: {
   manageUrl: string
   /** §11 deadline label (start minus 24h), already formatted. */
   cancellationDeadline?: string
+  /** Zoom join link for the meeting, when it was created. */
+  joinUrl?: string
 }) {
   return (
     <Shell preview={`Your session with ${props.coachName} is booked`}>
       <Heading style={h1}>Your session is booked</Heading>
       <Text style={text}>Hi {props.studentName},</Text>
       <Text style={text}>
-        You&rsquo;re confirmed with {props.coachName}. Details are below. The calendar
-        invite comes from Calendly separately.
+        You&rsquo;re confirmed with {props.coachName}. Details are below, and you&rsquo;ll
+        join over Zoom.
       </Text>
       <Section style={{ margin: '20px 0' }}>
         <Text style={detailRow}>
@@ -112,6 +114,14 @@ export function BookingConfirmedEmail(props: {
         <Text style={detailRow}>
           <strong>Paid:</strong> {props.amount}
         </Text>
+        {props.joinUrl ? (
+          <Text style={detailRow}>
+            <strong>Zoom:</strong>{' '}
+            <Link href={props.joinUrl} style={{ color: LINE }}>
+              {props.joinUrl}
+            </Link>
+          </Text>
+        ) : null}
       </Section>
       <Link href={props.manageUrl} style={button}>
         View session
@@ -212,8 +222,8 @@ export function CoachApprovedEmail(props: { coachName: string; payoutsUrl: strin
         Set up payouts
       </Link>
       <Text style={muted}>
-        You&rsquo;ll also get a Calendly invitation. Accept it and create your event
-        types so students can pick a time.
+        Set your weekly availability too, and students can book you into those times — we
+        create the Zoom meeting for each session automatically.
       </Text>
     </Shell>
   )
@@ -267,6 +277,27 @@ export function NewApplicationEmail(props: {
       <Link href={props.reviewUrl} style={{ ...button, backgroundColor: GOLD, color: INK }}>
         Review it
       </Link>
+    </Shell>
+  )
+}
+
+export function CoachInviteEmail(props: { firstName?: string; inviteUrl: string; inviterName?: string }) {
+  return (
+    <Shell preview="You're invited to coach on Trajectory">
+      <Heading style={h1}>You&rsquo;re invited to coach</Heading>
+      <Text style={text}>{props.firstName ? `Hi ${props.firstName},` : 'Hi,'}</Text>
+      <Text style={text}>
+        {props.inviterName ? `${props.inviterName} invited you` : 'You&rsquo;ve been invited'} to
+        join Trajectory as a coach. Follow the link to create your account and we&rsquo;ll walk you
+        through setup — your profile, rates, calendar, and payouts. Your profile goes live
+        automatically once it&rsquo;s complete.
+      </Text>
+      <Link href={props.inviteUrl} style={button}>
+        Accept your invite
+      </Link>
+      <Text style={muted}>
+        This link is unique to you. If you weren&rsquo;t expecting it, you can ignore this email.
+      </Text>
     </Shell>
   )
 }

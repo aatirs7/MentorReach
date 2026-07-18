@@ -17,7 +17,7 @@ const CHOICES: Array<{ role: Extract<Role, 'student' | 'coach'>; title: string; 
     role: 'coach',
     title: 'I want to coach',
     blurb:
-      'Share what you know, set your own rates and hours, and get paid per session. Profiles are reviewed before they go live.',
+      'Share what you know, set your own rates and hours, and get paid per session. We’ll walk you through setup and your profile goes live automatically once it’s complete.',
   },
 ]
 
@@ -42,7 +42,7 @@ export function RolePicker() {
 
       // Clerk's session token only picks up the new claim on refresh, so a client-side
       // push would still read the old (empty) role and bounce us back here.
-      window.location.href = role === 'student' ? '/onboarding/survey' : '/coach/setup'
+      window.location.href = role === 'student' ? '/onboarding/survey' : '/coach/onboarding'
     })
   }
 

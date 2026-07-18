@@ -1,15 +1,15 @@
 'use server'
 
-import { and, eq, inArray } from 'drizzle-orm'
+import { eq } from 'drizzle-orm'
 import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
 import { db } from '@/db'
-import { coachOfferings, coachProfiles } from '@/db/schema'
-import { requireUser } from '@/lib/auth/guards'
-import { generateReferralCode } from '@/lib/auth/referral'
-import { coachProfileSchema } from '@/lib/coach-schema'
+import { coachProfiles } from '@/db/schema'
+import { requireUser, viewingAsCoach } from '@/lib/auth/guards'
+import { coachProfileSchema, parsePriceToCents } from '@/lib/coach-schema'
 import { AGREEMENT_VERSION } from '@/lib/coach-publish'
-import { UploadError, uploadHeadshot } from '@/lib/storage'
+import { syncOfferings, uniqueReferralCode } from '@/lib/coach-writes'
+import { UploadError, uploadHeadshot, uploadResume } from '@/lib/storage'
 
 export type CoachSetupState = {
   errors?: Record<string, string[]>
@@ -33,18 +33,23 @@ export async function saveCoachProfile(
 ): Promise<CoachSetupState> {
   const user = await requireUser()
 
+  if (await viewingAsCoach()) {
+    return { message: 'You’re viewing as a coach (read-only). Exit coach view to make changes.' }
+  }
+
   if (user.role !== 'coach') {
     return { message: 'Only coaches can set up a coaching profile.' }
   }
 
-  // Offerings arrive as parallel arrays: a checked length + its price input.
+  // Offerings arrive as parallel arrays: a checked length + its price input (in dollars,
+  // converted to the integer cents the schema and DB expect).
   const lengths = formData.getAll('lengthMinutes').map(String)
   const offerings = lengths
     .map((len) => ({
       lengthMinutes: len,
-      priceCents: formData.get(`price_${len}`),
+      priceCents: parsePriceToCents(String(formData.get(`price_${len}`) ?? '')),
     }))
-    .filter((o) => o.priceCents !== null && o.priceCents !== '')
+    .filter((o) => o.priceCents !== null)
 
   const parsed = coachProfileSchema.safeParse({
     industry: formData.get('industry'),
@@ -53,7 +58,6 @@ export async function saveCoachProfile(
     headshotUrl: '', // managed by uploadHeadshotAction; not part of this form
     linkedinUrl: formData.get('linkedinUrl') ?? '',
     employerNote: formData.get('employerNote') ?? '',
-    calendlySchedulingUrl: formData.get('calendlySchedulingUrl') ?? '',
     employerVisibility: formData.get('employerVisibility') ?? 'show_name',
     generalTitle: formData.get('generalTitle') ?? '',
     offerings,
@@ -99,7 +103,6 @@ export async function saveCoachProfile(
     bio: v.bio,
     linkedinUrl: v.linkedinUrl || null,
     employerNote: v.employerNote || null,
-    calendlySchedulingUrl: v.calendlySchedulingUrl || null,
     displayEmployerGenerally,
     generalTitle: displayEmployerGenerally ? v.generalTitle || null : null,
     ...signature,
@@ -124,6 +127,49 @@ export async function saveCoachProfile(
 }
 
 /**
+ * Upload the coach's resume/CV (PDF, Vercel Blob), separately from the text form for the
+ * same reason as the headshot. Optional and admin-only visible; not a publish gate.
+ */
+export async function uploadResumeAction(
+  _prev: CoachSetupState,
+  formData: FormData,
+): Promise<CoachSetupState> {
+  const user = await requireUser()
+  if (await viewingAsCoach()) {
+    return { message: 'You’re viewing as a coach (read-only). Exit coach view to make changes.' }
+  }
+  if (user.role !== 'coach') return { message: 'Only coaches can upload a resume.' }
+
+  const profile = await db.query.coachProfiles.findFirst({
+    where: eq(coachProfiles.userId, user.id),
+  })
+  if (!profile) {
+    return { message: 'Save your details first, then add a resume.' }
+  }
+
+  const file = formData.get('resume')
+  if (!(file instanceof File) || file.size === 0) {
+    return { errors: { resume: ['Choose a PDF to upload.'] } }
+  }
+
+  let url: string
+  try {
+    url = await uploadResume(user.id, file)
+  } catch (err) {
+    if (err instanceof UploadError) return { errors: { resume: [err.message] } }
+    console.error('[coach-setup] resume upload failed', err)
+    return { errors: { resume: ['Upload failed. Please try again.'] } }
+  }
+
+  await db.update(coachProfiles).set({ resumeUrl: url }).where(eq(coachProfiles.id, profile.id))
+
+  revalidatePath('/coach/setup')
+  revalidatePath('/coach/onboarding')
+
+  return { message: 'Resume saved.' }
+}
+
+/**
  * Upload the coach's own headshot (Vercel Blob), separately from the text form so a large
  * image can't take the text save down with it, and vice versa.
  *
@@ -136,6 +182,9 @@ export async function uploadHeadshotAction(
   formData: FormData,
 ): Promise<CoachSetupState> {
   const user = await requireUser()
+  if (await viewingAsCoach()) {
+    return { message: 'You’re viewing as a coach (read-only). Exit coach view to make changes.' }
+  }
   if (user.role !== 'coach') return { message: 'Only coaches can upload a headshot.' }
 
   const profile = await db.query.coachProfiles.findFirst({
@@ -165,60 +214,4 @@ export async function uploadHeadshotAction(
   revalidatePath('/coach')
 
   return { message: 'Photo saved.' }
-}
-
-/**
- * Offerings are soft-deleted, never removed: sessions.offering_id references them with
- * onDelete: 'restrict', so a hard delete would either fail or orphan session history.
- */
-async function syncOfferings(
-  coachUserId: string,
-  desired: Array<{ lengthMinutes: number; priceCents: number }>,
-) {
-  const current = await db.query.coachOfferings.findMany({
-    where: eq(coachOfferings.coachId, coachUserId),
-  })
-
-  const desiredLengths = desired.map((d) => d.lengthMinutes)
-
-  for (const d of desired) {
-    const match = current.find((c) => c.lengthMinutes === d.lengthMinutes)
-
-    if (match) {
-      await db
-        .update(coachOfferings)
-        .set({ priceCents: d.priceCents, isActive: true })
-        .where(eq(coachOfferings.id, match.id))
-    } else {
-      await db.insert(coachOfferings).values({
-        coachId: coachUserId,
-        lengthMinutes: d.lengthMinutes,
-        priceCents: d.priceCents,
-      })
-    }
-  }
-
-  const toRetire = current
-    .filter((c) => !desiredLengths.includes(c.lengthMinutes) && c.isActive)
-    .map((c) => c.id)
-
-  if (toRetire.length) {
-    await db
-      .update(coachOfferings)
-      .set({ isActive: false })
-      .where(and(inArray(coachOfferings.id, toRetire), eq(coachOfferings.coachId, coachUserId)))
-  }
-}
-
-/** referral_code is UNIQUE; retry on the astronomically unlikely collision. */
-async function uniqueReferralCode(fullName: string | null): Promise<string> {
-  for (let attempt = 0; attempt < 5; attempt++) {
-    const code = generateReferralCode(fullName)
-    const taken = await db.query.coachProfiles.findFirst({
-      where: eq(coachProfiles.referralCode, code),
-      columns: { id: true },
-    })
-    if (!taken) return code
-  }
-  throw new Error('Could not generate a unique referral code after 5 attempts')
 }

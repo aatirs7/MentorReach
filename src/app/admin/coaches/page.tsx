@@ -1,16 +1,19 @@
-import { desc, inArray } from 'drizzle-orm'
+import { desc, eq, inArray } from 'drizzle-orm'
 import Link from 'next/link'
 import { ConsoleHeader } from '@/components/console-shell'
+import { InvitePanel } from './invite-panel'
 import { StatusActions } from './review-actions'
 import { Badge } from '@/components/ui/badge'
 import { Card } from '@/components/ui/card'
 import { db } from '@/db'
-import { coachOfferings, coachProfiles, users } from '@/db/schema'
+import { coachAvailabilityRules, coachInvites, coachOfferings, coachProfiles, users } from '@/db/schema'
 import { requireAdmin } from '@/lib/auth/guards'
+import { inviteUrl } from '@/lib/coach-invite'
 import { coachChecklist, isCoachLive } from '@/lib/coach-publish'
 import { formatPrice } from '@/lib/coach-schema'
 
 export const metadata = { title: 'Coaches' }
+export const dynamic = 'force-dynamic'
 
 /**
  * Admin roster. There's no approval queue anymore — coaches publish themselves once their
@@ -35,8 +38,22 @@ export default async function AdminCoachesPage() {
 
   const userById = new Map(coachUsers.map((u) => [u.id, u]))
 
+  const availabilityRules = profiles.length
+    ? await db.query.coachAvailabilityRules.findMany({
+        where: inArray(coachAvailabilityRules.coachId, profiles.map((p) => p.userId)),
+        columns: { coachId: true },
+      })
+    : []
+  const hasAvailabilityByCoach = new Set(availabilityRules.map((r) => r.coachId))
+
+  const pendingInvites = await db.query.coachInvites.findMany({
+    where: eq(coachInvites.status, 'pending'),
+    orderBy: [desc(coachInvites.createdAt)],
+  })
+
   const rows = profiles.map((p) => {
     const coachOff = offerings.filter((o) => o.coachId === p.userId && o.isActive)
+    const hasAvailability = hasAvailabilityByCoach.has(p.userId)
     const publishInput = {
       isSeed: p.isSeed,
       status: p.status,
@@ -44,7 +61,7 @@ export default async function AdminCoachesPage() {
       currentTitle: p.currentTitle,
       bio: p.bio,
       hasActiveOffering: coachOff.length > 0,
-      calendlyUserUri: p.calendlyUserUri,
+      hasAvailability,
       stripePayoutsEnabled: p.stripePayoutsEnabled,
       handbookAckAt: p.handbookAckAt,
     }
@@ -52,6 +69,7 @@ export default async function AdminCoachesPage() {
       profile: p,
       user: userById.get(p.userId),
       offerings: coachOff,
+      hasAvailability,
       live: isCoachLive(publishInput),
       remaining: coachChecklist(publishInput).filter((c) => !c.done),
     }
@@ -65,6 +83,18 @@ export default async function AdminCoachesPage() {
     <main className="mx-auto w-full max-w-5xl px-6 py-10">
       <ConsoleHeader title="Coaches" description="Coaches go live automatically when their checklist is complete. You can suspend anyone for safety." />
 
+      <div className="mt-8">
+        <InvitePanel
+          pending={pendingInvites.map((inv) => ({
+            id: inv.id,
+            email: inv.email,
+            fullName: inv.fullName,
+            url: inviteUrl(inv.token),
+            createdAt: inv.createdAt.toISOString(),
+          }))}
+        />
+      </div>
+
       <Section title="Live" rows={live} empty="No live coaches yet." />
       <Section title="Still setting up" rows={incomplete} empty="Nobody mid-setup." />
       {suspended.length > 0 ? <Section title="Suspended" rows={suspended} empty="" /> : null}
@@ -76,6 +106,7 @@ type Row = {
   profile: typeof coachProfiles.$inferSelect
   user?: typeof users.$inferSelect
   offerings: Array<typeof coachOfferings.$inferSelect>
+  hasAvailability: boolean
   live: boolean
   remaining: Array<{ label: string }>
 }
@@ -99,7 +130,7 @@ function Section({ title, rows, empty }: { title: string; rows: Row[]; empty: st
   )
 }
 
-function CoachRow({ profile, user, offerings, live, remaining }: Row) {
+function CoachRow({ profile, user, offerings, hasAvailability, live, remaining }: Row) {
   const suspended = profile.status === 'suspended'
 
   return (
@@ -164,7 +195,7 @@ function CoachRow({ profile, user, offerings, live, remaining }: Row) {
       <div className="mt-4 flex flex-wrap items-center gap-x-3 gap-y-2 text-xs text-slate">
         <span>Photo: {profile.headshotUrl ? 'yes' : 'no'}</span>
         <span>Stripe payouts: {profile.stripePayoutsEnabled ? 'ready' : 'no'}</span>
-        <span>Calendly: {profile.calendlyUserUri ? 'connected' : 'no'}</span>
+        <span>Availability: {hasAvailability ? 'set' : 'no'}</span>
         <span>Agreement: {profile.handbookAckAt ? 'signed' : 'not signed'}</span>
         <Link
           href={`/admin/coaches/${profile.userId}`}

@@ -1,6 +1,6 @@
 import { eq } from 'drizzle-orm'
 import Link from 'next/link'
-import { ConnectCalendarButton } from './connect-calendar'
+import { redirect } from 'next/navigation'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
@@ -10,6 +10,7 @@ import { requireCoach } from '@/lib/auth/guards'
 import { type ChecklistItemKey, coachChecklist, isCoachLive } from '@/lib/coach-publish'
 import { formatPrice } from '@/lib/coach-schema'
 import { COACH_SOURCED_BPS, PLATFORM_SOURCED_BPS } from '@/lib/commission'
+import { coachHasAvailability } from '@/lib/scheduling'
 import { env } from '@/lib/env'
 
 export const metadata = { title: 'Your coaching' }
@@ -22,12 +23,17 @@ export const metadata = { title: 'Your coaching' }
  * shown here. A suspended coach is offline regardless.
  */
 export default async function CoachHome() {
-  const { user, profile } = await requireCoach()
+  const { user, profile, viewAs } = await requireCoach()
+
+  // New coaches go through the guided flow first. Admins previewing (view-as) see the
+  // dashboard directly, never the wizard.
+  if (!profile.onboardingCompletedAt && !viewAs) redirect('/coach/onboarding')
 
   const offerings = await db.query.coachOfferings.findMany({
     where: eq(coachOfferings.coachId, user.id),
   })
   const active = offerings.filter((o) => o.isActive)
+  const hasAvailability = await coachHasAvailability(user.id)
 
   const publishInput = {
     isSeed: profile.isSeed,
@@ -36,7 +42,7 @@ export default async function CoachHome() {
     currentTitle: profile.currentTitle,
     bio: profile.bio,
     hasActiveOffering: active.length > 0,
-    calendlyUserUri: profile.calendlyUserUri,
+    hasAvailability,
     stripePayoutsEnabled: profile.stripePayoutsEnabled,
     handbookAckAt: profile.handbookAckAt,
   }
@@ -133,6 +139,9 @@ export default async function CoachHome() {
         <Button asChild variant="ghost">
           <Link href="/coach/handbook">Coach handbook</Link>
         </Button>
+        <Button asChild variant="ghost">
+          <Link href="/coach/resources">Resources</Link>
+        </Button>
       </div>
 
       <p className="mt-10 text-center">
@@ -144,14 +153,13 @@ export default async function CoachHome() {
 
 /** The action a coach takes to complete a still-open checklist item. */
 function StepAction({ stepKey }: { stepKey: ChecklistItemKey }) {
-  if (stepKey === 'calendar') return <ConnectCalendarButton />
-
   const target: Partial<Record<ChecklistItemKey, { href: string; label: string }>> = {
     photo: { href: '/coach/setup', label: 'Add photo' },
     field: { href: '/coach/setup', label: 'Edit' },
     role: { href: '/coach/setup', label: 'Edit' },
     bio: { href: '/coach/setup', label: 'Edit' },
     offering: { href: '/coach/setup', label: 'Add' },
+    calendar: { href: '/coach/availability', label: 'Set hours' },
     payouts: { href: '/coach/payouts', label: 'Set up' },
     handbook: { href: '/coach/setup', label: 'Review' },
   }

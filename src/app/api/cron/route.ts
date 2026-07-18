@@ -1,7 +1,7 @@
 import { and, eq, gte, inArray, isNull, lt, lte } from 'drizzle-orm'
 import type { NextRequest } from 'next/server'
 import { db } from '@/db'
-import { sessions, users } from '@/db/schema'
+import { sessionHolds, sessions, users } from '@/db/schema'
 import { firstName } from '@/lib/cancel'
 import { SessionReminderEmail } from '@/lib/email/templates'
 import { env } from '@/lib/env'
@@ -35,9 +35,25 @@ export async function GET(req: NextRequest) {
 
   const now = new Date()
 
-  const [completed, reminded] = await Promise.all([completeElapsed(now), sendReminders(now)])
+  const [completed, reminded, holdsSwept] = await Promise.all([
+    completeElapsed(now),
+    sendReminders(now),
+    sweepExpiredHolds(now),
+  ])
 
-  return Response.json({ ok: true, now: now.toISOString(), completed, reminded })
+  return Response.json({ ok: true, now: now.toISOString(), completed, reminded, holdsSwept })
+}
+
+/**
+ * Delete slot holds whose checkout window has passed (abandoned or expired). A stale hold
+ * would otherwise keep a slot looking busy until someone tried to rebook it. Best-effort
+ * cleanup; startSlotBooking also clears a stale hold on the exact slot it targets.
+ */
+async function sweepExpiredHolds(now: Date): Promise<number> {
+  const expired = await db.select({ id: sessionHolds.id }).from(sessionHolds).where(lt(sessionHolds.expiresAt, now))
+  if (!expired.length) return 0
+  await db.delete(sessionHolds).where(inArray(sessionHolds.id, expired.map((h) => h.id)))
+  return expired.length
 }
 
 /**

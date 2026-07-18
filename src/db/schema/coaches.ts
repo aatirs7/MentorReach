@@ -40,6 +40,13 @@ export const coachProfiles = pgTable(
     headshotUrl: text('headshot_url'),
 
     /**
+     * Optional resume/CV (PDF), uploaded during onboarding via Vercel Blob. Admin-only:
+     * shown on the coach detail page for context, never on the public profile. Not part of
+     * the publish checklist — coaches go live without it.
+     */
+    resumeUrl: text('resume_url'),
+
+    /**
      * Employer visibility (from the coach application §6). When true, the public card and
      * profile show `general_title` ("Finance Professional") instead of `current_title`,
      * for coaches whose employer doesn't allow the firm name to be shown.
@@ -81,17 +88,19 @@ export const coachProfiles = pgTable(
     referralCode: text('referral_code').notNull().unique(),
 
     /**
-     * Spec §9 — the coach's host URI inside the Trajectory Calendly org. This is the
-     * API URI (https://api.calendly.com/users/<uuid>) and is what we call the API with.
+     * Native scheduler settings.
+     *
+     * `timezone` is the IANA zone the coach declares their weekly availability in (e.g.
+     * "America/New_York"); slot generation converts those local hours to UTC instants.
+     * The guardrails bound what students can book:
+     *   bookingBufferMinutes — enforced gap on both sides of each session
+     *   minNoticeHours       — no bookings starting sooner than now + this many hours
+     *   maxBookingsPerDay     — optional cap on sessions per local day (null = no cap)
      */
-    calendlyUserUri: text('calendly_user_uri'),
-
-    /**
-     * The coach's PUBLIC scheduling page (https://calendly.com/<slug>), used for the §8
-     * read-only "view schedule" embed. Distinct from calendlyUserUri — the API URI can't
-     * be iframed and the public slug can't be derived from it, so both are stored.
-     */
-    calendlySchedulingUrl: text('calendly_scheduling_url'),
+    timezone: text('timezone').notNull().default('America/New_York'),
+    bookingBufferMinutes: smallint('booking_buffer_minutes').notNull().default(0),
+    minNoticeHours: smallint('min_notice_hours').notNull().default(12),
+    maxBookingsPerDay: smallint('max_bookings_per_day'),
 
     /** Spec §10 — Stripe Connect Express account. Nullable until onboarding starts. */
     stripeAccountId: text('stripe_account_id'),
@@ -128,6 +137,15 @@ export const coachProfiles = pgTable(
      * born suspended.
      */
     status: coachStatus('status').notNull().default('pending'),
+
+    /**
+     * When the coach finished the guided onboarding flow (/coach/onboarding) and saw the
+     * resources tour. NULL means they haven't been through it yet, which is what sends a
+     * new coach into the wizard instead of the plain dashboard. Independent of publish
+     * live-ness (src/lib/coach-publish.ts) — a coach can finish the tour before every
+     * checklist item is green, and vice versa.
+     */
+    onboardingCompletedAt: timestamp('onboarding_completed_at', { withTimezone: true, mode: 'date' }),
 
     approvedAt: timestamp('approved_at', { withTimezone: true, mode: 'date' }),
     approvedBy: uuid('approved_by').references(() => users.id, { onDelete: 'set null' }),

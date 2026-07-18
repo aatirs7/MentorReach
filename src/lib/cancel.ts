@@ -2,19 +2,19 @@ import 'server-only'
 import { eq } from 'drizzle-orm'
 import { db } from '@/db'
 import { sessions, users } from '@/db/schema'
-import { cancelEvent } from './calendly'
 import { SessionCanceledEmail } from './email/templates'
 import { notify } from './notifications'
 import { cancellationStatus, canCancel, refundEligibility, type SessionStatus } from './sessions'
 import { stripe } from './stripe'
+import { deleteMeeting, zoomConfigured } from './zoom'
 
 /**
  * Spec §10/§11 — cancellation and refund.
  *
- * This is the single implementation of the cancel path. Both entry points route here:
- *   - a student/coach canceling in-app
- *   - Calendly's invitee.canceled webhook
- * so the policy can't drift between them.
+ * The single implementation of the cancel path (student/coach canceling in-app), so the
+ * policy can't drift. Deleting the Zoom meeting frees nothing on our side — the slot frees
+ * automatically because a canceled session no longer counts as busy — but it tidies up the
+ * meeting so a canceled session's link doesn't stay live.
  *
  * §10 assumption, UNCONFIRMED WITH ISAIAH (§14.2): on a late cancel / no-show the coach
  * KEEPS the payout — that's the point of the penalty. The student forfeits and the coach
@@ -29,10 +29,8 @@ export type CancelOutcome = {
 
 export async function cancelSession(params: {
   sessionId: string
-  /** Who initiated. 'system' = Calendly webhook echoing a cancel made on their side. */
+  /** Who initiated. 'system' reserved for automated cancels. */
   actorUserId: string | 'system'
-  /** Skip the Calendly API call when Calendly is the one telling US about the cancel. */
-  skipCalendly?: boolean
   now?: Date
 }): Promise<CancelOutcome> {
   const now = params.now ?? new Date()
@@ -67,13 +65,13 @@ export async function cancelSession(params: {
     .set({ status, canceledAt: now })
     .where(eq(sessions.id, session.id))
 
-  // Release the coach's slot. Best-effort: our state is already correct, and a Calendly
+  // Tear down the Zoom meeting. Best-effort: our state is already correct, and a Zoom
   // failure must not strand the session in a half-canceled limbo.
-  if (!params.skipCalendly && session.calendlyEventUri) {
+  if (session.zoomMeetingId && zoomConfigured()) {
     try {
-      await cancelEvent(session.calendlyEventUri, 'Canceled via Trajectory')
+      await deleteMeeting(session.zoomMeetingId)
     } catch (err) {
-      console.error(`[cancel] Calendly cancel failed for session ${session.id}`, err)
+      console.error(`[cancel] Zoom meeting delete failed for session ${session.id}`, err)
     }
   }
 

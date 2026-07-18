@@ -1,24 +1,41 @@
 'use server'
 
+import { eq } from 'drizzle-orm'
 import { redirect } from 'next/navigation'
-import { BookingError, createCheckout } from '@/lib/booking'
+import { db } from '@/db'
+import { coachOfferings } from '@/db/schema'
+import { BookingError, startSlotBooking } from '@/lib/booking'
 import { requireStudent } from '@/lib/auth/guards'
 import { bookingEnabled } from '@/lib/env'
+import { getBookableSlots } from '@/lib/scheduling'
 
 export type BookState = { error?: string }
 
 /**
- * Spec §8 — start a booking.
+ * Open slots for one offering, as ISO instants. Public read (browsing is public); the
+ * transact gate lives in startBooking. The client formats these in the viewer's timezone.
+ */
+export async function slotsForOffering(offeringId: string): Promise<string[]> {
+  const offering = await db.query.coachOfferings.findFirst({
+    where: eq(coachOfferings.id, offeringId),
+    columns: { coachId: true, lengthMinutes: true, isActive: true },
+  })
+  if (!offering || !offering.isActive) return []
+
+  const slots = await getBookableSlots({
+    coachUserId: offering.coachId,
+    offeringLengthMin: offering.lengthMinutes,
+    now: new Date(),
+  })
+  return slots.map((s) => s.toISOString())
+}
+
+/**
+ * Start a booking for a chosen slot.
  *
- * THIS is where the survey gate lives now. The coach list and profile are public (see
- * ../page.tsx), so requireStudent() here isn't a second line of defence — it's the only
- * one, and it's the right place for it: the rule's purpose is to know who a student is
- * before they TRANSACT, not before they read.
- *
- * It redirects a signed-out visitor to sign-in and an unfinished student to the survey.
- * The panel renders that as an explicit prompt rather than letting anyone reach this and
- * get bounced, but the check has to be here regardless: a Server Action is a POST to
- * whatever route it lives on and can be replayed without the page ever rendering.
+ * THIS is where the survey gate lives (the coach list and profile are public). It redirects
+ * a signed-out visitor to sign-in and an unfinished student to the survey. The §11 policy
+ * ack is captured here, at consent, and carried onto the session via Stripe metadata.
  */
 export async function startBooking(_prev: BookState, formData: FormData): Promise<BookState> {
   const student = await requireStudent()
@@ -35,13 +52,12 @@ export async function startBooking(_prev: BookState, formData: FormData): Promis
     return { error: 'Pick a session length first.' }
   }
 
-  /**
-   * §11 acknowledgment, re-checked server-side. The pay button is disabled without it,
-   * but a disabled button is a UX affordance, not enforcement — this POST can be replayed
-   * without ever rendering the form. The timestamp is captured HERE, at the moment of
-   * consent, and carried onto the session row via Stripe metadata; it is the evidence
-   * that the terms were shown before any money moved.
-   */
+  const slotStartRaw = formData.get('slotStart')
+  const slotStart = typeof slotStartRaw === 'string' ? new Date(slotStartRaw) : null
+  if (!slotStart || Number.isNaN(slotStart.getTime())) {
+    return { error: 'Pick a time for your session.' }
+  }
+
   if (formData.get('policyAck') !== 'true') {
     return { error: 'Please confirm you understand the cancellation policy.' }
   }
@@ -50,9 +66,10 @@ export async function startBooking(_prev: BookState, formData: FormData): Promis
 
   let url: string
   try {
-    const result = await createCheckout({
+    const result = await startSlotBooking({
       offeringId,
       studentUserId: student.id,
+      slotStart,
       policyAckAt,
     })
     url = result.url
@@ -62,6 +79,5 @@ export async function startBooking(_prev: BookState, formData: FormData): Promis
     return { error: 'Something went wrong starting checkout. You have not been charged.' }
   }
 
-  // Outside the try: redirect() throws a control-flow signal that must not be caught.
   redirect(url)
 }

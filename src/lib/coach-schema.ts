@@ -21,7 +21,7 @@ export const INDUSTRIES = [
   'Cybersecurity',
 ] as const
 
-/** Spec §5/§9 — Calendly event types are created to match these. */
+/** Spec §5/§9 — the session lengths a coach can offer. */
 export const SESSION_LENGTHS = [30, 45, 60] as const
 
 const MIN_PRICE_CENTS = 500 // $5 — below this Stripe fees eat the whole transaction
@@ -62,36 +62,9 @@ export const offeringSchema = z.object({
     .max(MAX_PRICE_CENTS, 'Maximum session price is $1,000'),
 })
 
-/**
- * Spec §8/§9 — the coach's PUBLIC Calendly page, for the read-only "view schedule"
- * embed. Distinct from the API user URI: the API URI can't be iframed and the public
- * slug can't be derived from it, so the coach supplies this directly.
- *
- * Validated to calendly.com so we never iframe an arbitrary attacker-supplied origin.
- */
-const calendlySchedulingUrl = z
-  .string()
-  .trim()
-  .refine(
-    (v) => {
-      if (!v) return true
-      try {
-        const u = new URL(v.startsWith('http') ? v : `https://${v}`)
-        return u.hostname.replace(/^www\./, '') === 'calendly.com'
-      } catch {
-        return false
-      }
-    },
-    { message: 'Must be a calendly.com link' },
-  )
-  .transform((v) => (v && !v.startsWith('http') ? `https://${v}` : v))
-  .optional()
-  .or(z.literal(''))
-
 export const coachProfileSchema = z.object({
   industry: z.string().trim().min(1, 'Pick your field').max(120),
   currentTitle: z.string().trim().min(1, 'Your current role is required').max(160),
-  calendlySchedulingUrl,
   bio: z
     .string()
     .trim()
@@ -114,6 +87,36 @@ export const coachProfileSchema = z.object({
 })
 
 export type CoachProfileInput = z.infer<typeof coachProfileSchema>
+
+/**
+ * Per-step schemas for the guided onboarding (/coach/onboarding). Each validates only its
+ * own slice so a step can save without the whole profile being complete — the one-page
+ * /coach/setup still validates everything at once via coachProfileSchema. All three reuse
+ * the exact field validators above, so onboarding and setup can't diverge on rules.
+ */
+export const aboutStepSchema = z.object({
+  industry: z.string().trim().min(1, 'Pick your field').max(120),
+  currentTitle: z.string().trim().min(1, 'Your current role is required').max(160),
+  bio: z
+    .string()
+    .trim()
+    .min(80, 'Give students something to go on: at least 80 characters')
+    .max(2000),
+  linkedinUrl,
+  employerNote: z.string().trim().max(500).optional().or(z.literal('')),
+  employerVisibility: z.enum(['show_name', 'describe_generally']).default('show_name'),
+  generalTitle: z.string().trim().max(160).optional().or(z.literal('')),
+})
+
+export const sessionsStepSchema = z.object({
+  offerings: z
+    .array(offeringSchema)
+    .min(1, 'Offer at least one session length')
+    .max(SESSION_LENGTHS.length)
+    .refine((list) => new Set(list.map((o) => o.lengthMinutes)).size === list.length, {
+      message: 'Each session length can only be listed once',
+    }),
+})
 
 export function formatPrice(cents: number): string {
   return new Intl.NumberFormat('en-US', {

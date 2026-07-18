@@ -1,6 +1,5 @@
 import { notFound } from 'next/navigation'
 import { BookPanel } from './book-panel'
-import { CalendlyEmbed } from './calendly-embed'
 import { CoachAvatar, SpecialtyTags } from '@/components/coach-card'
 import { Badge } from '@/components/ui/badge'
 import { bookingGate } from '@/lib/auth/guards'
@@ -46,8 +45,6 @@ export default async function CoachProfilePage({ params }: { params: Promise<{ i
     disabledReason = 'Booking is being switched on shortly. Nothing here will charge you yet.'
   } else if (!profile.stripeAccountId) {
     disabledReason = 'This coach is still setting up payouts and can’t take bookings yet.'
-  } else if (!profile.calendlyUserUri) {
-    disabledReason = 'This coach is still setting up their calendar and can’t take bookings yet.'
   }
 
   return (
@@ -97,16 +94,6 @@ export default async function CoachProfilePage({ params }: { params: Promise<{ i
             </section>
           ) : null}
 
-          {profile.calendlySchedulingUrl ? (
-            <section className="mt-8 border-t border-line/15 pt-8">
-              <h2 className="text-xl">Their availability</h2>
-              <p className="mt-2 max-w-prose text-sm text-slate">
-                A preview of when they&rsquo;re free. You&rsquo;ll get a private link to actually
-                book after payment.
-              </p>
-              <CalendlyEmbed schedulingUrl={profile.calendlySchedulingUrl} />
-            </section>
-          ) : null}
         </div>
 
         <aside className="lg:sticky lg:top-8 lg:self-start">

@@ -2,6 +2,7 @@ import { and, eq } from 'drizzle-orm'
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import { StatusActions } from '../review-actions'
+import { startViewAsCoach } from '../view-as-actions'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
@@ -11,6 +12,7 @@ import { requireAdmin } from '@/lib/auth/guards'
 import { coachStats } from '@/lib/admin-stats'
 import { coachChecklist, isCoachLive } from '@/lib/coach-publish'
 import { formatPrice } from '@/lib/coach-schema'
+import { coachHasAvailability } from '@/lib/scheduling'
 
 export const metadata = { title: 'Coach' }
 export const dynamic = 'force-dynamic'
@@ -26,12 +28,13 @@ export default async function AdminCoachDetail({ params }: { params: Promise<{ i
   const profile = await db.query.coachProfiles.findFirst({ where: eq(coachProfiles.userId, id) })
   if (!profile) notFound()
 
-  const [coach, offerings, stats] = await Promise.all([
+  const [coach, offerings, stats, hasAvailability] = await Promise.all([
     db.query.users.findFirst({ where: eq(users.id, id) }),
     db.query.coachOfferings.findMany({
       where: and(eq(coachOfferings.coachId, id), eq(coachOfferings.isActive, true)),
     }),
     coachStats(id),
+    coachHasAvailability(id),
   ])
 
   const publishInput = {
@@ -41,7 +44,7 @@ export default async function AdminCoachDetail({ params }: { params: Promise<{ i
     currentTitle: profile.currentTitle,
     bio: profile.bio,
     hasActiveOffering: offerings.length > 0,
-    calendlyUserUri: profile.calendlyUserUri,
+    hasAvailability,
     stripePayoutsEnabled: profile.stripePayoutsEnabled,
     handbookAckAt: profile.handbookAckAt,
   }
@@ -68,6 +71,14 @@ export default async function AdminCoachDetail({ params }: { params: Promise<{ i
           {suspended ? 'suspended' : live ? 'live' : 'incomplete'}
         </Badge>
       </div>
+
+      {/* Preview the coach's own experience, read-only. */}
+      <form action={startViewAsCoach} className="mt-4">
+        <input type="hidden" name="coachUserId" value={id} />
+        <Button type="submit" variant="outline" size="sm">
+          View as this coach
+        </Button>
+      </form>
 
       {/* Agreement review */}
       <Card className="mt-8 border-line/20 p-6">
@@ -154,6 +165,21 @@ export default async function AdminCoachDetail({ params }: { params: Promise<{ i
                   className="text-ink underline underline-offset-4"
                 >
                   {profile.linkedinUrl}
+                </a>
+              </dd>
+            </div>
+          ) : null}
+          {profile.resumeUrl ? (
+            <div className="sm:col-span-2">
+              <dt className="text-slate">Resume</dt>
+              <dd>
+                <a
+                  href={profile.resumeUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-ink underline underline-offset-4"
+                >
+                  View resume (PDF)
                 </a>
               </dd>
             </div>

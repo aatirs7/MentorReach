@@ -57,11 +57,13 @@ const schema = z.object({
   STRIPE_SECRET_KEY: optionalKey(),
   STRIPE_WEBHOOK_SECRET: optionalKey(),
 
-  /** Spec §9. Calendly Teams org personal access token. */
-  CALENDLY_API_TOKEN: optionalKey(),
-  CALENDLY_WEBHOOK_SIGNING_KEY: optionalKey(),
-  /** The Calendly org URI (https://api.calendly.com/organizations/…). */
-  CALENDLY_ORGANIZATION_URI: optionalKey(),
+  /**
+   * Zoom Server-to-Server OAuth app — powers the native scheduler's video meetings.
+   * One platform Zoom account creates a meeting per booking. All three are needed.
+   */
+  ZOOM_ACCOUNT_ID: optionalKey(),
+  ZOOM_CLIENT_ID: optionalKey(),
+  ZOOM_CLIENT_SECRET: optionalKey(),
 
   /** Spec §12. Resend. */
   RESEND_API_KEY: optionalKey(),
@@ -177,8 +179,7 @@ export function integrationStatus() {
     clerkWebhook: Boolean(env.CLERK_WEBHOOK_SIGNING_SECRET),
     stripe: Boolean(env.STRIPE_SECRET_KEY),
     stripeWebhook: Boolean(env.STRIPE_WEBHOOK_SECRET),
-    calendly: Boolean(env.CALENDLY_API_TOKEN && env.CALENDLY_ORGANIZATION_URI),
-    calendlyWebhook: Boolean(env.CALENDLY_WEBHOOK_SIGNING_KEY),
+    zoom: Boolean(env.ZOOM_ACCOUNT_ID && env.ZOOM_CLIENT_ID && env.ZOOM_CLIENT_SECRET),
     email: Boolean(env.RESEND_API_KEY && env.EMAIL_FROM),
     cron: Boolean(env.CRON_SECRET),
     storage: Boolean(env.BLOB_READ_WRITE_TOKEN),
@@ -188,5 +189,5 @@ export function integrationStatus() {
 /** True when a student can actually complete a booking end-to-end (§8). */
 export function bookingEnabled(): boolean {
   const s = integrationStatus()
-  return s.stripe && s.calendly
+  return s.stripe && s.zoom
 }

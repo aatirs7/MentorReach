@@ -1,9 +1,10 @@
 'use client'
 
-import Image from 'next/image'
 import Link from 'next/link'
 import { useActionState, useState } from 'react'
-import { type CoachSetupState, saveCoachProfile, uploadHeadshotAction } from './actions'
+import { type CoachSetupState, saveCoachProfile } from './actions'
+import { PhotoUploader } from './fields/photo-uploader'
+import { ResumeUploader } from './fields/resume-uploader'
 import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Input } from '@/components/ui/input'
@@ -23,9 +24,9 @@ type Existing = {
   currentTitle: string
   bio: string
   headshotUrl: string | null
+  resumeUrl: string | null
   linkedinUrl: string | null
   employerNote: string | null
-  calendlySchedulingUrl: string | null
   displayEmployerGenerally: boolean
   generalTitle: string | null
   handbookSignedName: string | null
@@ -64,66 +65,6 @@ function Field({
   )
 }
 
-/**
- * Photo upload — its own form/action so a large image can't take the text save down with
- * it. Only works once a profile row exists (the action says so), so for a brand-new coach
- * we tell them to save details first.
- */
-function PhotoUploader({ existing }: { existing: Existing }) {
-  const [state, action, pending] = useActionState<CoachSetupState, FormData>(uploadHeadshotAction, {})
-  const err = state.errors ?? {}
-
-  return (
-    <div className="border-t border-line/15 pt-7 text-center">
-      <Label className="text-base font-normal text-ink">Your photo</Label>
-      <p className="mx-auto mt-1 max-w-md text-sm text-slate">
-        A real photo of you. Students book a person, so this is required before your profile
-        goes live.
-      </p>
-
-      <div className="mx-auto mt-4 flex w-full max-w-md flex-col items-center gap-4">
-        {existing?.headshotUrl ? (
-          <Image
-            src={existing.headshotUrl}
-            alt="Your current headshot"
-            width={112}
-            height={112}
-            className="size-28 rounded-full border border-line/20 object-cover"
-          />
-        ) : (
-          <div className="flex size-28 items-center justify-center rounded-full border border-dashed border-line/40 text-sm text-slate">
-            No photo
-          </div>
-        )}
-
-        {existing ? (
-          <form action={action} className="flex w-full flex-col items-center gap-3">
-            <input
-              type="file"
-              name="photo"
-              accept="image/jpeg,image/png,image/webp"
-              required
-              className="block w-full text-sm text-slate file:mr-3 file:rounded-md file:border file:border-line/25 file:bg-secondary file:px-3 file:py-1.5 file:text-sm file:text-ink"
-            />
-            <Button type="submit" size="sm" variant="outline" disabled={pending}>
-              {pending ? 'Uploading…' : existing.headshotUrl ? 'Replace photo' : 'Upload photo'}
-            </Button>
-          </form>
-        ) : (
-          <p className="text-sm text-slate">Save your details below first, then add a photo.</p>
-        )}
-
-        {err.photo?.length ? (
-          <p role="alert" className="text-sm text-destructive">
-            {err.photo[0]}
-          </p>
-        ) : null}
-        {state.message ? <p className="text-sm text-slate">{state.message}</p> : null}
-      </div>
-    </div>
-  )
-}
-
 /** Values pre-filled from an accepted application, used only when there's no profile yet. */
 export type Prefill = {
   industry?: string
@@ -149,7 +90,12 @@ export function CoachSetupForm({ existing, prefill }: { existing: Existing; pref
 
   return (
     <div className="mt-10 space-y-7">
-      <PhotoUploader existing={existing} />
+      <div className="border-t border-line/15 pt-7">
+        <PhotoUploader headshotUrl={existing?.headshotUrl ?? null} canUpload={Boolean(existing)} />
+      </div>
+      <div className="border-t border-line/15 pt-7">
+        <ResumeUploader resumeUrl={existing?.resumeUrl ?? null} canUpload={Boolean(existing)} />
+      </div>
 
       <form action={action} className="space-y-7">
         <Field label="What field are you in?" errors={err.industry}>
@@ -189,20 +135,6 @@ export function CoachSetupForm({ existing, prefill }: { existing: Existing; pref
           errors={err.bio}
         >
           <Textarea id="bio" name="bio" defaultValue={existing?.bio} rows={7} required />
-        </Field>
-
-        <Field
-          label="Your Calendly link"
-          hint="Students see a read-only preview of your availability. They’ll still book through us, and you’ll get a private link per paid session."
-          htmlFor="calendlySchedulingUrl"
-          errors={err.calendlySchedulingUrl}
-        >
-          <Input
-            id="calendlySchedulingUrl"
-            name="calendlySchedulingUrl"
-            defaultValue={existing?.calendlySchedulingUrl ?? ''}
-            placeholder="calendly.com/your-name"
-          />
         </Field>
 
         <Field

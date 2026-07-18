@@ -2,7 +2,7 @@ import { eq } from 'drizzle-orm'
 import Link from 'next/link'
 import { Card } from '@/components/ui/card'
 import { db } from '@/db'
-import { coachOfferings, reports, users } from '@/db/schema'
+import { coachAvailabilityRules, coachOfferings, reports, users } from '@/db/schema'
 import { requireAdmin } from '@/lib/auth/guards'
 import { ConsoleHeader } from '@/components/console-shell'
 import { platformStats } from '@/lib/admin-stats'
@@ -17,16 +17,18 @@ export const dynamic = 'force-dynamic'
 export default async function AdminHome() {
   await requireAdmin()
 
-  const [profiles, activeOfferings, studentCount, openReports, stats] = await Promise.all([
+  const [profiles, activeOfferings, availabilityRules, studentCount, openReports, stats] = await Promise.all([
     db.query.coachProfiles.findMany(),
     db.select({ coachId: coachOfferings.coachId }).from(coachOfferings).where(eq(coachOfferings.isActive, true)),
+    db.select({ coachId: coachAvailabilityRules.coachId }).from(coachAvailabilityRules),
     db.$count(users, eq(users.role, 'student')),
     db.select({ id: reports.id }).from(reports).where(eq(reports.status, 'open')),
     platformStats(),
   ])
 
-  // Live-coach count via the same rule as browse. Offering presence from the active set.
+  // Live-coach count via the same rule as browse. Offering + availability presence from sets.
   const coachesWithOffering = new Set(activeOfferings.map((o) => o.coachId))
+  const coachesWithAvailability = new Set(availabilityRules.map((r) => r.coachId))
   const liveCoaches = profiles.filter((p) =>
     isCoachLive({
       isSeed: p.isSeed,
@@ -35,7 +37,7 @@ export default async function AdminHome() {
       currentTitle: p.currentTitle,
       bio: p.bio,
       hasActiveOffering: coachesWithOffering.has(p.userId),
-      calendlyUserUri: p.calendlyUserUri,
+      hasAvailability: coachesWithAvailability.has(p.userId),
       stripePayoutsEnabled: p.stripePayoutsEnabled,
       handbookAckAt: p.handbookAckAt,
     }),

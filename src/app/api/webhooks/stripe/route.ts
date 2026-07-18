@@ -3,14 +3,14 @@ import type { NextRequest } from 'next/server'
 import type Stripe from 'stripe'
 import { db } from '@/db'
 import { coachOfferings, coachProfiles, sessions, users } from '@/db/schema'
-import { createSessionFromCheckout } from '@/lib/booking'
-import { createSingleUseSchedulingLink, findEventTypeByDuration } from '@/lib/calendly'
+import { confirmBookingFromCheckout } from '@/lib/booking'
 import { firstName } from '@/lib/cancel'
 import { formatPrice } from '@/lib/coach-schema'
-import { PaymentReceivedEmail } from '@/lib/email/templates'
+import { BookingConfirmedEmail, PaymentReceivedEmail } from '@/lib/email/templates'
 import { env } from '@/lib/env'
 import { notify } from '@/lib/notifications'
 import { stripe } from '@/lib/stripe'
+import { createMeeting, zoomConfigured } from '@/lib/zoom'
 
 /**
  * Spec §8/§10 — Stripe webhooks.
@@ -69,7 +69,7 @@ export async function POST(req: NextRequest) {
   }
 }
 
-/** Spec §8 steps 2→3: money landed, so create the session and mint the Calendly link. */
+/** Money landed → create the session at the chosen time, make the Zoom meeting, notify. */
 async function handleCheckoutCompleted(checkout: Stripe.Checkout.Session) {
   if (checkout.payment_status !== 'paid') return
 
@@ -87,20 +87,14 @@ async function handleCheckoutCompleted(checkout: Stripe.Checkout.Session) {
     return
   }
 
-  /**
-   * §11 acknowledgment, captured before the Stripe redirect and carried through
-   * metadata. Parsed defensively: an unreadable value must not lose the payment, and a
-   * missing one is honestly recorded as null rather than back-filled with "now", which
-   * would fabricate evidence for a dispute.
-   */
+  // §11 ack — parsed defensively; a missing one is recorded null, never fabricated.
   const ackRaw = md.policyAckAt ? new Date(md.policyAckAt) : null
   const policyAckAt = ackRaw && !Number.isNaN(ackRaw.getTime()) ? ackRaw : null
 
-  if (!policyAckAt) {
-    console.warn(`[stripe-webhook] checkout ${checkout.id} has no usable policyAckAt`)
-  }
+  const slotStart = parseDate(md.slotStart)
+  const slotEnd = parseDate(md.slotEnd)
 
-  const session = await createSessionFromCheckout({
+  const { session, created, booked } = await confirmBookingFromCheckout({
     paymentIntentId,
     amountCents: checkout.amount_total ?? 0,
     linkId: md.linkId,
@@ -108,25 +102,13 @@ async function handleCheckoutCompleted(checkout: Stripe.Checkout.Session) {
     coachId: md.coachId,
     studentId: md.studentId,
     policyAckAt,
+    slotStart,
+    slotEnd,
+    holdId: md.holdId ?? null,
   })
 
-  // Already had a scheduling link (this is a retry) — don't mint a second one.
-  if (session.calendlyEventUri) return
-
-  await mintSchedulingLink(session.id)
-}
-
-/**
- * Spec §8 steps 3→4 — the single-use Calendly link.
- *
- * Best-effort by design: if Calendly is down or unconfigured, the session still exists
- * as `paid_unscheduled` and /book/complete can mint the link on demand. Throwing here
- * would make Stripe retry the whole webhook and risk duplicate work for a failure that
- * has nothing to do with the payment.
- */
-async function mintSchedulingLink(sessionId: string) {
-  const session = await db.query.sessions.findFirst({ where: eq(sessions.id, sessionId) })
-  if (!session) return
+  // A retry — the session (and any Zoom meeting/emails) already happened.
+  if (!created) return
 
   const [offering, profile, coach, student] = await Promise.all([
     db.query.coachOfferings.findFirst({ where: eq(coachOfferings.id, session.offeringId) }),
@@ -134,44 +116,118 @@ async function mintSchedulingLink(sessionId: string) {
     db.query.users.findFirst({ where: eq(users.id, session.coachId) }),
     db.query.users.findFirst({ where: eq(users.id, session.studentId) }),
   ])
+  if (!student) return
 
-  if (!offering || !profile?.calendlyUserUri || !student) return
+  const coachName = coach?.fullName ?? 'your coach'
 
-  let scheduleUrl = `${env.NEXT_PUBLIC_APP_URL}/book/complete?session=${session.id}`
-
-  try {
-    const eventType = await findEventTypeByDuration(profile.calendlyUserUri, offering.lengthMinutes)
-
-    if (eventType) {
-      // utm_content=<session_id> is the join key invitee.created echoes back (§9).
-      scheduleUrl = await createSingleUseSchedulingLink({
-        eventTypeUri: eventType.uri,
-        sessionId: session.id,
-      })
-    } else {
-      console.error(
-        `[stripe-webhook] no ${offering.lengthMinutes}min Calendly event type for coach ${session.coachId}`,
-      )
-    }
-  } catch (err) {
-    console.error(`[stripe-webhook] could not mint Calendly link for session ${session.id}`, err)
+  // Fallback path: the slot was taken during checkout. Ask the student to pick another.
+  if (!booked || !session.scheduledStart) {
+    const scheduleUrl = `${env.NEXT_PUBLIC_APP_URL}/coaches/${session.coachId}`
+    await notify({
+      userId: student.id,
+      type: 'payment_received',
+      payload: { sessionId: session.id, scheduleUrl },
+      email: {
+        to: student.email,
+        subject: 'Payment received: pick your time',
+        react: PaymentReceivedEmail({
+          studentName: firstName(student.fullName),
+          coachName,
+          amount: formatPrice(session.amountCents),
+          scheduleUrl,
+        }),
+      },
+    })
+    return
   }
 
+  const tz = profile?.timezone ?? 'America/New_York'
+  const lengthMinutes = offering?.lengthMinutes ?? 0
+
+  // Create the Zoom meeting — best-effort, never fail the booking over it.
+  let joinUrl: string | undefined
+  if (zoomConfigured()) {
+    try {
+      const meeting = await createMeeting({
+        topic: `Trajectory session — ${coachName}`,
+        startIso: session.scheduledStart.toISOString(),
+        durationMin: lengthMinutes,
+        timezone: tz,
+      })
+      await db
+        .update(sessions)
+        .set({ zoomMeetingId: meeting.id, zoomJoinUrl: meeting.joinUrl, zoomStartUrl: meeting.startUrl })
+        .where(eq(sessions.id, session.id))
+      joinUrl = meeting.joinUrl
+    } catch (err) {
+      console.error(`[stripe-webhook] Zoom meeting creation failed for session ${session.id}`, err)
+    }
+  }
+
+  const startsAt = formatInTz(session.scheduledStart, tz)
+  const deadline = formatInTz(new Date(session.scheduledStart.getTime() - 24 * 3600_000), tz)
+  const manageUrl = `${env.NEXT_PUBLIC_APP_URL}/sessions`
+
+  // Confirm to both parties. The student sees what they paid; the coach sees their payout.
   await notify({
     userId: student.id,
-    type: 'payment_received',
-    payload: { sessionId: session.id, scheduleUrl },
+    type: 'booking_confirmed',
+    payload: { sessionId: session.id },
     email: {
       to: student.email,
-      subject: 'Payment received: pick your time',
-      react: PaymentReceivedEmail({
+      subject: `Your session with ${coachName} is booked`,
+      react: BookingConfirmedEmail({
         studentName: firstName(student.fullName),
-        coachName: coach?.fullName ?? 'your coach',
+        coachName,
+        lengthMinutes,
+        startsAt,
         amount: formatPrice(session.amountCents),
-        scheduleUrl,
+        manageUrl,
+        cancellationDeadline: deadline,
+        joinUrl,
       }),
     },
   })
+
+  if (coach) {
+    await notify({
+      userId: coach.id,
+      type: 'booking_confirmed',
+      payload: { sessionId: session.id },
+      email: {
+        to: coach.email,
+        subject: `New session booked with ${student.fullName ?? 'a student'}`,
+        react: BookingConfirmedEmail({
+          studentName: firstName(coach.fullName),
+          coachName: student.fullName ?? 'your student',
+          lengthMinutes,
+          startsAt,
+          amount: formatPrice(session.coachPayoutCents),
+          manageUrl,
+          cancellationDeadline: deadline,
+          joinUrl,
+        }),
+      },
+    })
+  }
+}
+
+function parseDate(value: string | undefined | null): Date | null {
+  if (!value) return null
+  const d = new Date(value)
+  return Number.isNaN(d.getTime()) ? null : d
+}
+
+function formatInTz(date: Date, timeZone: string): string {
+  return new Intl.DateTimeFormat('en-US', {
+    timeZone,
+    weekday: 'short',
+    month: 'short',
+    day: 'numeric',
+    hour: 'numeric',
+    minute: '2-digit',
+    timeZoneName: 'short',
+  }).format(date)
 }
 
 /**

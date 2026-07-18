@@ -19,6 +19,8 @@ export * from './sessions'
 export * from './trust'
 export * from './tasks'
 export * from './applications'
+export * from './invites'
+export * from './availability'
 
 /*
  * DEFERRED — spec §4 "Phase 1.5":

@@ -3,9 +3,16 @@
 import { eq } from 'drizzle-orm'
 import { revalidatePath } from 'next/cache'
 import { db } from '@/db'
-import { sessionNotes, sessions } from '@/db/schema'
+import { coachOfferings, sessionNotes, sessions, users } from '@/db/schema'
 import { requireUser } from '@/lib/auth/guards'
-import { cancelSession } from '@/lib/cancel'
+import { firstName, cancelSession } from '@/lib/cancel'
+import { formatPrice } from '@/lib/coach-schema'
+import { BookingConfirmedEmail } from '@/lib/email/templates'
+import { env } from '@/lib/env'
+import { notify } from '@/lib/notifications'
+import { getBookableSlots, isSlotOpen } from '@/lib/scheduling'
+import { isScheduled, type SessionStatus } from '@/lib/sessions'
+import { updateMeeting, zoomConfigured } from '@/lib/zoom'
 
 export type ActionState = { error?: string; success?: string }
 
@@ -34,6 +41,130 @@ export async function cancelSessionAction(
     console.error('[sessions] cancel failed', err)
     return { error: err instanceof Error ? err.message : 'Could not cancel that session.' }
   }
+}
+
+/** Open slots to reschedule a session into (its coach + same length). Party-only. */
+export async function rescheduleSlots(sessionId: string): Promise<string[]> {
+  const user = await requireUser()
+  const session = await db.query.sessions.findFirst({ where: eq(sessions.id, sessionId) })
+  if (!session) return []
+  if (user.id !== session.studentId && user.id !== session.coachId) return []
+
+  const offering = await db.query.coachOfferings.findFirst({ where: eq(coachOfferings.id, session.offeringId) })
+  if (!offering) return []
+
+  const slots = await getBookableSlots({
+    coachUserId: session.coachId,
+    offeringLengthMin: offering.lengthMinutes,
+    now: new Date(),
+  })
+  return slots.map((s) => s.toISOString())
+}
+
+/** Move a live session to a new open slot. No refund implication (reschedule ≠ cancel). */
+export async function rescheduleSessionAction(_prev: ActionState, formData: FormData): Promise<ActionState> {
+  const user = await requireUser()
+
+  const sessionId = formData.get('sessionId')
+  const slotStartRaw = formData.get('slotStart')
+  if (typeof sessionId !== 'string') return { error: 'Missing session.' }
+  const slotStart = typeof slotStartRaw === 'string' ? new Date(slotStartRaw) : null
+  if (!slotStart || Number.isNaN(slotStart.getTime())) return { error: 'Pick a new time.' }
+
+  const session = await db.query.sessions.findFirst({ where: eq(sessions.id, sessionId) })
+  if (!session) return { error: 'Session not found.' }
+  if (user.id !== session.studentId && user.id !== session.coachId) {
+    return { error: 'Not authorized.' }
+  }
+  if (!isScheduled(session.status as SessionStatus)) {
+    return { error: 'Only a booked session can be rescheduled.' }
+  }
+
+  const offering = await db.query.coachOfferings.findFirst({ where: eq(coachOfferings.id, session.offeringId) })
+  if (!offering) return { error: 'Session length not found.' }
+  const slotEnd = new Date(slotStart.getTime() + offering.lengthMinutes * 60_000)
+
+  const open = await isSlotOpen({
+    coachUserId: session.coachId,
+    offeringLengthMin: offering.lengthMinutes,
+    slotStart,
+    now: new Date(),
+  })
+  if (!open) return { error: 'That time isn’t available. Please pick another.' }
+
+  await db
+    .update(sessions)
+    .set({ status: 'rescheduled', scheduledStart: slotStart, scheduledEnd: slotEnd, reminderSentAt: null })
+    .where(eq(sessions.id, session.id))
+
+  if (session.zoomMeetingId && zoomConfigured()) {
+    try {
+      await updateMeeting(session.zoomMeetingId, {
+        startIso: slotStart.toISOString(),
+        durationMin: offering.lengthMinutes,
+      })
+    } catch (err) {
+      console.error(`[reschedule] Zoom update failed for session ${session.id}`, err)
+    }
+  }
+
+  await notifyRescheduled(session.id, slotStart)
+  revalidatePath('/sessions')
+  return { success: 'Session rescheduled. We’ve emailed the new time to both of you.' }
+}
+
+async function notifyRescheduled(sessionId: string, start: Date): Promise<void> {
+  const session = await db.query.sessions.findFirst({ where: eq(sessions.id, sessionId) })
+  if (!session) return
+  const [student, coach, offering] = await Promise.all([
+    db.query.users.findFirst({ where: eq(users.id, session.studentId) }),
+    db.query.users.findFirst({ where: eq(users.id, session.coachId) }),
+    db.query.coachOfferings.findFirst({ where: eq(coachOfferings.id, session.offeringId) }),
+  ])
+  if (!student || !coach) return
+
+  const startsAt = start.toLocaleString('en-US', { dateStyle: 'full', timeStyle: 'short' })
+  const manageUrl = `${env.NEXT_PUBLIC_APP_URL}/sessions`
+  const lengthMinutes = offering?.lengthMinutes ?? 0
+
+  await Promise.all([
+    notify({
+      userId: student.id,
+      type: 'booking_confirmed',
+      payload: { sessionId: session.id },
+      email: {
+        to: student.email,
+        subject: `Your session with ${coach.fullName ?? 'your coach'} was rescheduled`,
+        react: BookingConfirmedEmail({
+          studentName: firstName(student.fullName),
+          coachName: coach.fullName ?? 'your coach',
+          lengthMinutes,
+          startsAt,
+          amount: formatPrice(session.amountCents),
+          manageUrl,
+          joinUrl: session.zoomJoinUrl ?? undefined,
+        }),
+      },
+    }),
+    notify({
+      userId: coach.id,
+      type: 'booking_confirmed',
+      payload: { sessionId: session.id },
+      email: {
+        to: coach.email,
+        subject: `A session was rescheduled`,
+        react: BookingConfirmedEmail({
+          studentName: firstName(coach.fullName),
+          coachName: student.fullName ?? 'your student',
+          lengthMinutes,
+          startsAt,
+          amount: formatPrice(session.coachPayoutCents),
+          manageUrl,
+          joinUrl: session.zoomJoinUrl ?? undefined,
+        }),
+      },
+    }),
+  ])
 }
 
 /** Spec §12 — coach leaves a brief post-session note, visible to that student. */

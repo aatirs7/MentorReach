@@ -1,8 +1,9 @@
 import 'server-only'
 import { and, asc, eq, gte, inArray, isNotNull, lte, ne, or, sql, type SQL } from 'drizzle-orm'
 import { db } from '@/db'
-import { coachOfferings, coachProfiles, users } from '@/db/schema'
+import { coachAvailabilityRules, coachOfferings, coachProfiles, users } from '@/db/schema'
 import { isCoachLive } from './coach-publish'
+import { coachHasAvailability } from './scheduling'
 
 /**
  * Spec §8 — browse.
@@ -10,7 +11,7 @@ import { isCoachLive } from './coach-publish'
  * The "is this coach live?" rule is applied HERE, once, so an unpublished coach cannot
  * leak into a listing because someone forgot a WHERE clause. It mirrors isCoachLive() in
  * coach-publish.ts: not suspended, AND either a seed/demo coach OR a real coach whose
- * DB-cheap publish requirements are met (photo, Calendly, Stripe payouts, handbook ack).
+ * DB-cheap publish requirements are met (photo, availability, Stripe payouts, handbook ack).
  * The ≥1-active-offering requirement is added by the offerings inner join below.
  */
 export type CoachCard = {
@@ -38,9 +39,11 @@ export type BrowseFilters = {
  * present, and the active-offering requirement comes from the offerings join.
  */
 function liveCoachSql(): SQL {
+  // A real coach needs at least one native availability rule (§9 scheduler).
+  const hasAvailability = sql`EXISTS (SELECT 1 FROM ${coachAvailabilityRules} WHERE ${coachAvailabilityRules.coachId} = ${coachProfiles.userId})`
   const realComplete = and(
     isNotNull(coachProfiles.headshotUrl),
-    isNotNull(coachProfiles.calendlyUserUri),
+    hasAvailability,
     eq(coachProfiles.stripePayoutsEnabled, true),
     isNotNull(coachProfiles.handbookAckAt),
   )
@@ -156,7 +159,7 @@ export async function getPublicCoach(userId: string) {
     currentTitle: profile.currentTitle,
     bio: profile.bio,
     hasActiveOffering: offerings.length > 0,
-    calendlyUserUri: profile.calendlyUserUri,
+    hasAvailability: await coachHasAvailability(userId),
     stripePayoutsEnabled: profile.stripePayoutsEnabled,
     handbookAckAt: profile.handbookAckAt,
   })

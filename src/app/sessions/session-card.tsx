@@ -1,13 +1,20 @@
 'use client'
 
-import { useActionState, useState } from 'react'
-import { type ActionState, addSessionNote, cancelSessionAction } from './actions'
+import { useActionState, useEffect, useState } from 'react'
+import {
+  type ActionState,
+  addSessionNote,
+  cancelSessionAction,
+  rescheduleSessionAction,
+  rescheduleSlots,
+} from './actions'
+import { SlotChooser } from '@/components/slot-chooser'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { Textarea } from '@/components/ui/textarea'
 import { formatPrice } from '@/lib/coach-schema'
-import { canCancel, refundEligibility, type SessionStatus, statusLabel, statusTone } from '@/lib/sessions'
+import { canCancel, isScheduled, refundEligibility, type SessionStatus, statusLabel, statusTone } from '@/lib/sessions'
 
 export type SessionView = {
   id: string
@@ -17,7 +24,7 @@ export type SessionView = {
   amountCents: number
   payoutCents: number
   counterpartyName: string
-  scheduleUrl: string | null
+  zoomJoinUrl: string | null
   notes: Array<{ id: string; body: string; createdAt: string }>
 }
 
@@ -61,10 +68,17 @@ export function SessionCard({ session, viewerRole }: { session: SessionView; vie
         </div>
       </div>
 
-      {session.status === 'paid_unscheduled' && session.scheduleUrl ? (
-        <Button asChild size="sm" className="mt-4">
-          <a href={session.scheduleUrl}>Pick your time</a>
-        </Button>
+      {isScheduled(session.status) ? (
+        <div className="mt-4 flex flex-wrap gap-2">
+          {session.zoomJoinUrl ? (
+            <Button asChild size="sm">
+              <a href={session.zoomJoinUrl} target="_blank" rel="noopener noreferrer">
+                Join (Zoom)
+              </a>
+            </Button>
+          ) : null}
+          <RescheduleControl sessionId={session.id} />
+        </div>
       ) : null}
 
       {session.notes.length > 0 ? (
@@ -157,5 +171,57 @@ export function SessionCard({ session, viewerRole }: { session: SessionView; vie
 
       {cancelState.success ? <p className="mt-3 text-sm text-slate">{cancelState.success}</p> : null}
     </Card>
+  )
+}
+
+/** Open a slot picker and move the session to a new time. */
+function RescheduleControl({ sessionId }: { sessionId: string }) {
+  const [open, setOpen] = useState(false)
+  const [slots, setSlots] = useState<string[]>([])
+  const [loaded, setLoaded] = useState(false)
+  const [state, action, pending] = useActionState<ActionState, FormData>(rescheduleSessionAction, {})
+
+  useEffect(() => {
+    if (!open) return
+    let cancelled = false
+    rescheduleSlots(sessionId).then((s) => {
+      if (!cancelled) {
+        setSlots(s)
+        setLoaded(true)
+      }
+    })
+    return () => {
+      cancelled = true
+    }
+  }, [open, sessionId])
+
+  if (state.success) {
+    return <p className="w-full text-sm text-slate">{state.success}</p>
+  }
+
+  if (!open) {
+    return (
+      <Button size="sm" variant="outline" onClick={() => setOpen(true)}>
+        Reschedule
+      </Button>
+    )
+  }
+
+  return (
+    <form action={action} className="w-full rounded-lg border border-line/20 p-4">
+      <input type="hidden" name="sessionId" value={sessionId} />
+      <p className="label-mono">Pick a new time</p>
+      <p className="mt-1 text-xs text-slate">Shown in your timezone.</p>
+      <SlotChooser slots={slots} loading={!loaded} />
+      {state.error ? <p role="alert" className="mt-2 text-sm text-destructive">{state.error}</p> : null}
+      <div className="mt-3 flex gap-2">
+        <Button type="submit" size="sm" disabled={pending}>
+          {pending ? 'Rescheduling…' : 'Confirm new time'}
+        </Button>
+        <Button type="button" size="sm" variant="ghost" onClick={() => setOpen(false)}>
+          Cancel
+        </Button>
+      </div>
+    </form>
   )
 }

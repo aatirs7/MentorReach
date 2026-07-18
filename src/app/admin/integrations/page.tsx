@@ -49,17 +49,11 @@ export default async function IntegrationsPage() {
         'Payments would complete but no session row would ever be created, because checkout.session.completed is the only signal money moved. Booking is effectively broken without this.',
     },
     {
-      name: 'Calendly scheduling (§9)',
-      live: s.calendly,
-      envVars: ['CALENDLY_API_TOKEN', 'CALENDLY_ORGANIZATION_URI'],
-      whenMissing: 'No single-use scheduling links. Students could pay but never pick a time.',
-    },
-    {
-      name: 'Calendly webhooks',
-      live: s.calendlyWebhook,
-      envVars: ['CALENDLY_WEBHOOK_SIGNING_KEY'],
+      name: 'Zoom meetings (§9)',
+      live: s.zoom,
+      envVars: ['ZOOM_ACCOUNT_ID', 'ZOOM_CLIENT_ID', 'ZOOM_CLIENT_SECRET'],
       whenMissing:
-        'Sessions would stay “needs a time” forever, because invitee.created is what moves them to booked.',
+        'Booking is disabled: a session can’t be created without a Zoom meeting to attach. The native scheduler shows availability, but the Book button is off until this is set.',
     },
     {
       name: 'Resend email (§12)',
@@ -76,7 +70,7 @@ export default async function IntegrationsPage() {
     },
   ]
 
-  const ready = bookingEnabled() && s.stripeWebhook && s.calendlyWebhook
+  const ready = bookingEnabled() && s.stripeWebhook
 
   return (
     <main className="mx-auto w-full max-w-5xl px-6 py-10">

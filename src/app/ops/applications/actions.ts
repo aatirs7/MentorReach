@@ -6,9 +6,9 @@ import { db } from '@/db'
 import { coachApplications } from '@/db/schema'
 import { requireAdmin } from '@/lib/auth/guards'
 import { firstName } from '@/lib/cancel'
-import { ApplicationAcceptedEmail, CoachRejectedEmail } from '@/lib/email/templates'
+import { createCoachInvite } from '@/lib/coach-invite'
+import { CoachInviteEmail, CoachRejectedEmail } from '@/lib/email/templates'
 import { sendEmail } from '@/lib/email/client'
-import { env } from '@/lib/env'
 
 export type ReviewState = { error?: string; success?: string }
 
@@ -44,12 +44,24 @@ export async function reviewApplication(_prev: ReviewState, formData: FormData):
       .set({ status: 'accepted', reviewedAt: new Date(), reviewedBy: admin.email })
       .where(eq(coachApplications.id, id))
 
+    // Mint a tokenized invite (prefilled from the application) — the same /join flow a
+    // directly-invited friend gets, instead of a bare /sign-up link.
+    const field = app.field === 'Other' ? app.fieldOther : app.field
+    const { url } = await createCoachInvite({
+      email: app.email,
+      fullName: app.fullName,
+      prefillField: field ?? null,
+      prefillTitle: app.roleCompany,
+      invitedBy: admin.id,
+    })
+
     await sendEmail({
       to: app.email,
       subject: 'You’re in — set up your Trajectory coaching profile',
-      react: ApplicationAcceptedEmail({
+      react: CoachInviteEmail({
         firstName: firstName(app.fullName),
-        setupUrl: `${env.NEXT_PUBLIC_APP_URL}/sign-up`,
+        inviteUrl: url,
+        inviterName: admin.fullName ?? undefined,
       }),
     })
 

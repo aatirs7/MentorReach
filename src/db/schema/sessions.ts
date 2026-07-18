@@ -8,9 +8,10 @@ import { users } from './users'
 /**
  * Spec §8/§10/§11 — a paid coaching session.
  *
- * Lifecycle: paid_unscheduled → booked → (rescheduled) → completed
+ * Native scheduler flow: the student picks a time, then pays, so a completed checkout is
+ * created directly as `booked` with a time and a Zoom meeting. `paid_unscheduled` remains
+ * only as a safety net for the rare case a slot is taken during checkout.
  * Cancel branches: canceled_free (≥24h) → refunded, or canceled_late (<24h, no refund).
- * Payment always precedes scheduling (§8), so a row exists before Calendly is involved.
  */
 export const sessions = pgTable(
   'sessions',
@@ -52,13 +53,15 @@ export const sessions = pgTable(
      */
     stripePaymentIntentId: text('stripe_payment_intent_id').unique(),
 
-    calendlyEventUri: text('calendly_event_uri'),
-
     /**
-     * UNIQUE: the §9 idempotency key. Calendly retries `invitee.created`; without this
-     * constraint a retry double-books.
+     * Zoom meeting for this session, created when the booking is confirmed. Host link goes
+     * to the coach (zoomStartUrl), join link to both parties (zoomJoinUrl). Nullable: a
+     * session can be booked before the meeting is created (best-effort), and admin/comped
+     * sessions may have none.
      */
-    calendlyInviteeUri: text('calendly_invitee_uri').unique(),
+    zoomMeetingId: text('zoom_meeting_id'),
+    zoomJoinUrl: text('zoom_join_url'),
+    zoomStartUrl: text('zoom_start_url'),
 
     scheduledStart: timestamp('scheduled_start', { withTimezone: true, mode: 'date' }),
     scheduledEnd: timestamp('scheduled_end', { withTimezone: true, mode: 'date' }),

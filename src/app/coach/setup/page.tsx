@@ -1,81 +1,57 @@
 import { and, eq } from 'drizzle-orm'
-import { redirect } from 'next/navigation'
-import { CoachSetupForm, type Prefill } from './setup-form'
+import Link from 'next/link'
+import { CoachSetupForm } from './setup-form'
 import { db } from '@/db'
-import { coachApplications, coachOfferings, coachProfiles } from '@/db/schema'
-import { requireUser } from '@/lib/auth/guards'
-import { INDUSTRIES } from '@/lib/coach-schema'
+import { coachOfferings } from '@/db/schema'
+import { requireCoach } from '@/lib/auth/guards'
 
-export const metadata = { title: 'Set up your profile' }
+export const metadata = { title: 'Edit your profile' }
+export const dynamic = 'force-dynamic'
 
-/** Coach profile setup. No approval step — the profile publishes itself once complete. */
+/**
+ * Coach profile EDIT surface. New coaches are created through the guided flow
+ * (/coach/onboarding); requireCoach() sends a coach with no profile there. This page is for
+ * editing an existing profile all at once, and it supports admin "view as coach" read-only.
+ */
 export default async function CoachSetupPage() {
-  const user = await requireUser()
-
-  if (user.role === 'student') redirect('/onboarding/survey')
-  if (user.role === 'admin') redirect('/admin')
-
-  const profile = await db.query.coachProfiles.findFirst({
-    where: eq(coachProfiles.userId, user.id),
-  })
+  const { user, profile, viewAs } = await requireCoach()
 
   const offerings = await db.query.coachOfferings.findMany({
-    where: eq(coachOfferings.coachId, user.id),
+    where: and(eq(coachOfferings.coachId, user.id), eq(coachOfferings.isActive, true)),
   })
-
-  // Pre-fill from an accepted application matching this coach's email (spec: accept
-  // invites into setup "with their data pre-filled"). Only when there's no profile yet.
-  let prefill: Prefill = null
-  if (!profile) {
-    const app = await db.query.coachApplications.findFirst({
-      where: and(eq(coachApplications.email, user.email), eq(coachApplications.status, 'accepted')),
-    })
-    if (app) {
-      const field = INDUSTRIES.includes(app.field as (typeof INDUSTRIES)[number]) ? app.field : undefined
-      prefill = {
-        industry: field,
-        currentTitle: app.roleCompany,
-        displayEmployerGenerally: app.employerVisibility === 'describe_generally',
-      }
-    }
-  }
 
   return (
     <main className="mx-auto w-full max-w-2xl flex-1 px-6 py-16">
       <div className="text-center">
-        <p className="label-mono">{profile ? 'Your profile' : 'Get set up'}</p>
-        <h1 className="mt-3 text-4xl">
-          {profile ? 'Edit your profile' : 'Set up your coaching profile'}
-        </h1>
+        <p className="label-mono">Your profile</p>
+        <h1 className="mt-3 text-4xl">Edit your profile</h1>
         <p className="mx-auto mt-3 max-w-prose text-slate">
-          {profile
-            ? 'Changes go live immediately.'
-            : 'Students see this before they book. Be specific about what you can actually help with.'}
+          {viewAs ? 'Read-only preview of this coach’s profile.' : 'Changes go live immediately.'}
+        </p>
+        <p className="mx-auto mt-2 max-w-prose text-sm text-slate">
+          Set the hours you&rsquo;re available on your{' '}
+          <Link href="/coach/availability" className="underline decoration-gold underline-offset-4">
+            availability page
+          </Link>
+          .
         </p>
       </div>
 
       <CoachSetupForm
-        existing={
-          profile
-            ? {
-                industry: profile.industry,
-                currentTitle: profile.currentTitle,
-                bio: profile.bio,
-                headshotUrl: profile.headshotUrl,
-                linkedinUrl: profile.linkedinUrl,
-                employerNote: profile.employerNote,
-                calendlySchedulingUrl: profile.calendlySchedulingUrl,
-                displayEmployerGenerally: profile.displayEmployerGenerally,
-                generalTitle: profile.generalTitle,
-                handbookSignedName: profile.handbookSignedName,
-                handbookSignedAt: profile.handbookAckAt?.toISOString() ?? null,
-                offerings: offerings
-                  .filter((o) => o.isActive)
-                  .map((o) => ({ lengthMinutes: o.lengthMinutes, priceCents: o.priceCents })),
-              }
-            : null
-        }
-        prefill={prefill}
+        existing={{
+          industry: profile.industry,
+          currentTitle: profile.currentTitle,
+          bio: profile.bio,
+          headshotUrl: profile.headshotUrl,
+          resumeUrl: profile.resumeUrl,
+          linkedinUrl: profile.linkedinUrl,
+          employerNote: profile.employerNote,
+          displayEmployerGenerally: profile.displayEmployerGenerally,
+          generalTitle: profile.generalTitle,
+          handbookSignedName: profile.handbookSignedName,
+          handbookSignedAt: profile.handbookAckAt?.toISOString() ?? null,
+          offerings: offerings.map((o) => ({ lengthMinutes: o.lengthMinutes, priceCents: o.priceCents })),
+        }}
       />
     </main>
   )

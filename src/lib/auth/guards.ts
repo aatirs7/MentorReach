@@ -2,8 +2,9 @@ import 'server-only'
 import { eq } from 'drizzle-orm'
 import { redirect } from 'next/navigation'
 import { db } from '@/db'
-import { coachProfiles, studentSurveys } from '@/db/schema'
+import { coachProfiles, studentSurveys, users } from '@/db/schema'
 import { type DbUser, ensureUser } from './ensure-user'
+import { readViewAsCoachId } from './view-as'
 
 /**
  * Spec §3 gating, enforced AT THE RESOURCE rather than in proxy.ts.
@@ -45,25 +46,59 @@ export async function requireStudent(): Promise<DbUser> {
   return user
 }
 
-export type CoachContext = { user: DbUser; profile: typeof coachProfiles.$inferSelect }
+export type CoachContext = {
+  user: DbUser
+  profile: typeof coachProfiles.$inferSelect
+  /** True when an admin is previewing this coach read-only (see src/lib/auth/view-as.ts). */
+  viewAs?: boolean
+}
 
 /**
  * A coach with a profile. Any coach reaches their own dashboard regardless of whether
  * they're published yet — that's where the setup checklist lives. Live-ness (published
  * and bookable) is computed from completeness, not stored as a role gate; see
  * src/lib/coach-publish.ts.
+ *
+ * ADMIN "VIEW AS COACH": when the requester is an admin AND a view-as cookie is set to a
+ * real coach, this returns THAT coach's user + profile with `viewAs: true`, so every coach
+ * page renders exactly what the coach sees. The cookie is trusted only after auth resolves
+ * to an admin here, so a non-admin's cookie is inert. Writes are refused separately.
  */
 export async function requireCoach(): Promise<CoachContext> {
   const user = await requireUser()
+
+  if (user.role === 'admin') {
+    const targetId = await readViewAsCoachId()
+    if (targetId) {
+      const [target, profile] = await Promise.all([
+        db.query.users.findFirst({ where: eq(users.id, targetId) }),
+        db.query.coachProfiles.findFirst({ where: eq(coachProfiles.userId, targetId) }),
+      ])
+      if (target && profile) return { user: target, profile, viewAs: true }
+    }
+    // Admin without a valid view-as target has no coaching surface of their own.
+    redirect('/admin/coaches')
+  }
+
   if (user.role !== 'coach') redirect('/')
 
   const profile = await db.query.coachProfiles.findFirst({
     where: eq(coachProfiles.userId, user.id),
   })
 
-  if (!profile) redirect('/coach/setup')
+  if (!profile) redirect('/coach/onboarding')
 
   return { user, profile }
+}
+
+/**
+ * Is the current admin previewing a coach read-only? Used by coach mutations to refuse
+ * politely. Only ever true for an admin with a view-as cookie set.
+ */
+export async function viewingAsCoach(): Promise<boolean> {
+  const user = await ensureUser()
+  if (!user || user.role !== 'admin') return false
+  return Boolean(await readViewAsCoachId())
 }
 
 /** A coach who isn't suspended. Suspension is the only admin kill switch. */

@@ -10,7 +10,7 @@ const complete: CoachPublishInput = {
   currentTitle: 'Analyst at Evercore',
   bio: 'A real bio.',
   hasActiveOffering: true,
-  calendlyUserUri: 'https://api.calendly.com/users/abc',
+  hasAvailability: true,
   stripePayoutsEnabled: true,
   handbookAckAt: new Date(),
 }
@@ -34,7 +34,7 @@ describe('isCoachLive — the self-serve publish gate', () => {
 
   it('holds back on each missing piece', () => {
     assert.equal(isCoachLive({ ...complete, hasActiveOffering: false }), false)
-    assert.equal(isCoachLive({ ...complete, calendlyUserUri: null }), false)
+    assert.equal(isCoachLive({ ...complete, hasAvailability: false }), false)
     assert.equal(isCoachLive({ ...complete, stripePayoutsEnabled: false }), false)
     assert.equal(isCoachLive({ ...complete, handbookAckAt: null }), false)
     assert.equal(isCoachLive({ ...complete, bio: '' }), false)
@@ -50,7 +50,7 @@ describe('isCoachLive — the self-serve publish gate', () => {
       ...complete,
       isSeed: true,
       headshotUrl: 'https://i.pravatar.cc/400?u=seed',
-      calendlyUserUri: null,
+      hasAvailability: false,
       stripePayoutsEnabled: false,
       handbookAckAt: null,
     }

@@ -53,3 +53,41 @@ export async function uploadHeadshot(coachUserId: string, file: File): Promise<s
 
   return blob.url
 }
+
+const MAX_RESUME_BYTES = 8 * 1024 * 1024 // 8MB
+
+/**
+ * Coach resume/CV upload — same Vercel Blob store as the headshot, PDF only.
+ *
+ * Optional, like the headshot: without BLOB_READ_WRITE_TOKEN it throws a clear message on
+ * this one path and nothing else breaks. The resume is admin-only context (shown on the
+ * coach detail page), never public, and never a publish gate — so an unconfigured Blob
+ * store just means coaches can't attach one yet.
+ */
+export async function uploadResume(coachUserId: string, file: File): Promise<string> {
+  const token = env.BLOB_READ_WRITE_TOKEN
+  if (!token) {
+    throw new UploadError(
+      'Resume upload isn’t switched on yet. Connect a Vercel Blob store to enable it.',
+    )
+  }
+
+  if (file.type !== 'application/pdf') {
+    throw new UploadError('Please upload a PDF.')
+  }
+  if (file.size > MAX_RESUME_BYTES) {
+    throw new UploadError('That file is over 8MB. Please upload a smaller one.')
+  }
+  if (file.size === 0) {
+    throw new UploadError('That file looks empty. Please choose a PDF.')
+  }
+
+  const blob = await put(`resumes/${coachUserId}.pdf`, file, {
+    access: 'public',
+    token,
+    addRandomSuffix: true,
+    contentType: file.type,
+  })
+
+  return blob.url
+}
