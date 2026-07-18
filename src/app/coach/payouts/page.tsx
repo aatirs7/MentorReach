@@ -128,7 +128,7 @@ export default async function PayoutsPage() {
 
 function Shell({ children }: { children: React.ReactNode }) {
   return (
-    <main className="w-full max-w-xl flex-1">
+    <main className="mx-auto w-full max-w-xl flex-1 text-center">
       <p className="label-mono">Getting paid</p>
       <h1 className="mt-2 text-3xl sm:text-4xl">Payouts</h1>
       {children}

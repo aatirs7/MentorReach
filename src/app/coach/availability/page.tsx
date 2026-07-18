@@ -17,11 +17,11 @@ export default async function CoachAvailabilityPage() {
   ])
 
   return (
-    <main className="w-full max-w-2xl flex-1">
-      <div>
+    <main className="mx-auto w-full max-w-2xl flex-1">
+      <div className="text-center">
         <p className="label-mono">Scheduling</p>
         <h1 className="mt-2 text-3xl sm:text-4xl">Your availability</h1>
-        <p className="mt-2 max-w-prose text-slate">
+        <p className="mx-auto mt-2 max-w-prose text-slate">
           Set the hours you&rsquo;re open to coach. Students book a Zoom session directly into these
           times, and we create the meeting for you.
         </p>

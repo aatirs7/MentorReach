@@ -33,18 +33,18 @@ export default async function CoachResourcesPage() {
   ]
 
   return (
-    <main className="w-full max-w-4xl flex-1">
-      <div>
+    <main className="mx-auto w-full max-w-4xl flex-1">
+      <div className="text-center">
         <p className="label-mono">Resources</p>
         <h1 className="mt-2 text-3xl sm:text-4xl">Everything you have</h1>
-        <p className="mt-2 max-w-prose text-slate">
+        <p className="mx-auto mt-2 max-w-prose text-slate">
           The tools, standards, and support that come with coaching on Trajectory.
         </p>
       </div>
 
       {groups.map((g) => (
         <section key={g.title} className="mt-8">
-          <h2 className="text-2xl">{g.title}</h2>
+          <h2 className="text-center text-2xl">{g.title}</h2>
           <div className="mt-4 grid gap-4 sm:grid-cols-2">
             {g.items.map((item) => (
               <Card key={item.href} className="border-line/20 p-5">

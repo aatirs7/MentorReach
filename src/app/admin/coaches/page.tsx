@@ -114,7 +114,7 @@ type Row = {
 function Section({ title, rows, empty }: { title: string; rows: Row[]; empty: string }) {
   return (
     <section className="mt-10">
-      <h2 className="text-2xl">
+      <h2 className="text-center text-2xl">
         {title} {rows.length > 0 ? <span className="text-slate">({rows.length})</span> : null}
       </h2>
       {rows.length === 0 ? (

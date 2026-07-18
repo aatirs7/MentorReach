@@ -55,28 +55,26 @@ export default async function CoachHome() {
   const referralUrl = `${env.NEXT_PUBLIC_APP_URL}/r/${profile.referralCode}`
 
   return (
-    <main className="w-full max-w-5xl flex-1">
-      <div className="flex flex-wrap items-start justify-between gap-4">
-        <div>
-          <div className="flex items-center gap-2.5">
-            <h1 className="text-3xl sm:text-4xl">
-              {suspended ? 'Profile paused' : live ? 'You’re live' : 'Almost there'}
-            </h1>
-            <Badge variant={suspended ? 'destructive' : live ? 'default' : 'secondary'}>
-              {suspended ? 'Paused' : live ? 'Live' : `${remaining} to go`}
-            </Badge>
-          </div>
-          <p className="mt-2 max-w-prose text-slate">
-            {suspended
-              ? 'Your profile isn’t currently visible to students. If you think that’s a mistake, get in touch.'
-              : live
-                ? 'Students can find and book you. Everything below is done.'
-                : `You’re ${remaining} step${remaining === 1 ? '' : 's'} from going live. Finish these and your profile publishes automatically, with no waiting on approval.`}
-          </p>
+    <main className="mx-auto w-full max-w-4xl flex-1">
+      <div className="text-center">
+        <div className="flex items-center justify-center gap-2.5">
+          <h1 className="text-3xl sm:text-4xl">
+            {suspended ? 'Profile paused' : live ? 'You’re live' : 'Almost there'}
+          </h1>
+          <Badge variant={suspended ? 'destructive' : live ? 'default' : 'secondary'}>
+            {suspended ? 'Paused' : live ? 'Live' : `${remaining} to go`}
+          </Badge>
         </div>
-        <Badge variant="secondary" className="mt-1">
-          {profile.industry}
-        </Badge>
+        <p className="mx-auto mt-2 max-w-prose text-slate">
+          {suspended
+            ? 'Your profile isn’t currently visible to students. If you think that’s a mistake, get in touch.'
+            : live
+              ? 'Students can find and book you. Everything below is done.'
+              : `You’re ${remaining} step${remaining === 1 ? '' : 's'} from going live. Finish these and your profile publishes automatically, with no waiting on approval.`}
+        </p>
+        <div className="mt-3">
+          <Badge variant="secondary">{profile.industry}</Badge>
+        </div>
       </div>
 
       {!suspended ? (

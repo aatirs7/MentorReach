@@ -46,7 +46,7 @@ export default async function SessionsPage() {
   if (rows.length === 0) {
     body = (
       <>
-        <Header viewerRole={viewerRole} align={isCoach ? 'left' : 'center'} />
+        <Header viewerRole={viewerRole} />
         <Card className="mt-10 border-line/20 p-10 text-center">
           <p className="text-lg">No sessions yet.</p>
           <p className="mt-2 text-sm text-slate">
@@ -100,7 +100,7 @@ export default async function SessionsPage() {
 
     body = (
       <>
-        <Header viewerRole={viewerRole} align={isCoach ? 'left' : 'center'} />
+        <Header viewerRole={viewerRole} />
 
         <section className="mt-10">
           <h2 className="text-2xl">Upcoming</h2>
@@ -133,7 +133,7 @@ export default async function SessionsPage() {
   if (isCoach) {
     return (
       <CoachShell banner={null}>
-        <main className="w-full max-w-3xl flex-1">{body}</main>
+        <main className="mx-auto w-full max-w-3xl flex-1">{body}</main>
       </CoachShell>
     )
   }
@@ -141,19 +141,12 @@ export default async function SessionsPage() {
   return <main className="mx-auto w-full max-w-3xl flex-1 px-6 py-14">{body}</main>
 }
 
-function Header({
-  viewerRole,
-  align,
-}: {
-  viewerRole: 'student' | 'coach'
-  align: 'left' | 'center'
-}) {
-  const centered = align === 'center'
+function Header({ viewerRole }: { viewerRole: 'student' | 'coach' }) {
   return (
-    <div className={centered ? 'text-center' : undefined}>
+    <div className="text-center">
       <p className="label-mono">Coaching sessions</p>
       <h1 className="mt-2 text-3xl sm:text-4xl">Your sessions</h1>
-      <p className={`mt-2 max-w-prose text-slate ${centered ? 'mx-auto' : ''}`}>
+      <p className="mx-auto mt-2 max-w-prose text-slate">
         {viewerRole === 'coach'
           ? 'Everything students have booked with you.'
           : 'Everything you’ve booked. Free cancellation up to 24 hours before.'}

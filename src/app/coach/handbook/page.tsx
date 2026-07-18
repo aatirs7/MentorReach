@@ -17,16 +17,16 @@ export const metadata = {
 export default function CoachHandbookPage() {
   return (
     <main className="flex-1">
-      <div className="w-full max-w-3xl">
+      <div className="mx-auto w-full max-w-3xl">
         {/* Hero */}
-        <header className="rounded-2xl border border-line/20 bg-sand p-8 sm:p-10">
+        <header className="rounded-2xl border border-line/20 bg-sand p-8 text-center sm:p-10">
           <p className="label-mono">For coaches</p>
           <h1 className="mt-3 text-4xl leading-tight sm:text-5xl">Coach Handbook</h1>
-          <p className="mt-4 max-w-prose leading-relaxed text-slate">
+          <p className="mx-auto mt-4 max-w-prose leading-relaxed text-slate">
             How we expect coaches to operate on Trajectory. Completing onboarding means you agree
             to these standards. Read it once. It&rsquo;s short on purpose.
           </p>
-          <div className="mt-6 flex flex-wrap gap-2">
+          <div className="mt-6 flex flex-wrap justify-center gap-2">
             <Meta>~4 min read</Meta>
             <Meta>Required to publish</Meta>
             <Meta>Last reviewed 2026</Meta>
@@ -34,7 +34,7 @@ export default function CoachHandbookPage() {
         </header>
 
         {/* Jump nav */}
-        <nav aria-label="Sections" className="mt-6 flex flex-wrap gap-2">
+        <nav aria-label="Sections" className="mt-6 flex flex-wrap justify-center gap-2">
           {SECTIONS.map((s) => (
             <a
               key={s.id}
@@ -129,10 +129,10 @@ export default function CoachHandbookPage() {
 
         {/* Removal — warning callout */}
         <section id="removal" className="mt-10 scroll-mt-6">
-          <div className="rounded-2xl border border-destructive/30 bg-destructive/5 p-6 sm:p-8">
+          <div className="rounded-2xl border border-destructive/30 bg-destructive/5 p-6 text-center sm:p-8">
             <p className="label-mono text-destructive">Grounds for removal</p>
             <h2 className="mt-2 font-display text-2xl leading-snug">What gets you removed</h2>
-            <p className="mt-3 max-w-prose leading-relaxed text-ink/90">
+            <p className="mx-auto mt-3 max-w-prose leading-relaxed text-ink/90">
               We personally selected every coach here, and we will remove anyone who breaks that
               trust. Grounds for removal include off-platform payment, misrepresenting your
               background, any form of harassment or discrimination, repeated late cancellations or
@@ -246,10 +246,12 @@ function Section({
 }) {
   return (
     <section id={id} className="mt-10 scroll-mt-6">
-      <p className="label-mono">{eyebrow}</p>
-      <h2 className="mt-2 font-display text-2xl leading-snug">{title}</h2>
-      {intro ? <p className="mt-2 max-w-prose text-slate">{intro}</p> : null}
-      <div className="mt-4 space-y-3">{children}</div>
+      <div className="text-center">
+        <p className="label-mono">{eyebrow}</p>
+        <h2 className="mt-2 font-display text-2xl leading-snug">{title}</h2>
+        {intro ? <p className="mx-auto mt-2 max-w-prose text-slate">{intro}</p> : null}
+      </div>
+      <div className="mt-5 space-y-3">{children}</div>
     </section>
   )
 }

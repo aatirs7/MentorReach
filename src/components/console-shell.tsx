@@ -25,8 +25,8 @@ export function ConsoleShell({ children }: { children: React.ReactNode }) {
 }
 
 /**
- * Consistent left-aligned page header for console pages. Replaces the old per-page
- * centered headers so everything lines up.
+ * Consistent centered page header for console pages. The title and description are
+ * centered; an optional action sits centered just below.
  */
 export function ConsoleHeader({
   title,
@@ -38,12 +38,14 @@ export function ConsoleHeader({
   action?: React.ReactNode
 }) {
   return (
-    <div className="flex flex-wrap items-start justify-between gap-4">
+    <div className="flex flex-col items-center gap-4 text-center">
       <div>
-        <h1 className="text-3xl">{title}</h1>
-        {description ? <p className="mt-2 max-w-prose text-sm text-slate">{description}</p> : null}
+        <h1 className="text-3xl sm:text-4xl">{title}</h1>
+        {description ? (
+          <p className="mx-auto mt-2 max-w-prose text-sm text-slate">{description}</p>
+        ) : null}
       </div>
-      {action ? <div className="shrink-0">{action}</div> : null}
+      {action ? <div>{action}</div> : null}
     </div>
   )
 }

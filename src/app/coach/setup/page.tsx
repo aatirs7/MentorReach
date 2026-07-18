@@ -21,14 +21,14 @@ export default async function CoachSetupPage() {
   })
 
   return (
-    <main className="w-full max-w-2xl flex-1">
-      <div>
+    <main className="mx-auto w-full max-w-2xl flex-1">
+      <div className="text-center">
         <p className="label-mono">Your profile</p>
         <h1 className="mt-2 text-3xl sm:text-4xl">Edit your profile</h1>
-        <p className="mt-2 max-w-prose text-slate">
+        <p className="mx-auto mt-2 max-w-prose text-slate">
           {viewAs ? 'Read-only preview of this coach’s profile.' : 'Changes go live immediately.'}
         </p>
-        <p className="mt-2 max-w-prose text-sm text-slate">
+        <p className="mx-auto mt-2 max-w-prose text-sm text-slate">
           Set the hours you&rsquo;re available on your{' '}
           <Link href="/coach/availability" className="underline decoration-gold underline-offset-4">
             availability page
