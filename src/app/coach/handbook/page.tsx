@@ -17,14 +17,14 @@ export const metadata = {
 export default function CoachHandbookPage() {
   return (
     <main className="flex-1">
-      <div className="mx-auto w-full max-w-3xl">
+      <div className="w-full max-w-3xl">
         {/* Hero */}
         <header className="rounded-2xl border border-line/20 bg-sand p-8 sm:p-10">
           <p className="label-mono">For coaches</p>
           <h1 className="mt-3 text-4xl leading-tight sm:text-5xl">Coach Handbook</h1>
           <p className="mt-4 max-w-prose leading-relaxed text-slate">
             How we expect coaches to operate on Trajectory. Completing onboarding means you agree
-            to these standards. Read it once — it&rsquo;s short on purpose.
+            to these standards. Read it once. It&rsquo;s short on purpose.
           </p>
           <div className="mt-6 flex flex-wrap gap-2">
             <Meta>~4 min read</Meta>
@@ -105,7 +105,7 @@ export default function CoachHandbookPage() {
           <Bullets
             items={[
               'You set your own rates and the session lengths you offer.',
-              'Payment runs through Stripe. After each completed session, your earnings are paid out to your connected account automatically — you never chase an invoice.',
+              'Payment runs through Stripe. After each completed session, your earnings are paid out to your connected account automatically, so you never chase an invoice.',
               'Trajectory takes a platform commission on each session. The rest is yours.',
               'You are an independent contractor, not an employee. You handle your own taxes on what you earn, and Stripe provides your tax documentation directly.',
             ]}
@@ -179,7 +179,7 @@ const LIFECYCLE: Array<{ title: string; items: string[] }> = [
   {
     title: 'Before a session',
     items: [
-      'Read the student’s survey and goals before you join. You have their year, field, and what they asked for help with — don’t make them repeat it.',
+      'Read the student’s survey and goals before you join. You have their year, field, and what they asked for help with, so don’t make them repeat it.',
       'Be on time. Join at the scheduled minute, not five past.',
       'If you can’t make it, cancel or reschedule at least 24 hours ahead so the student isn’t left waiting.',
     ],
@@ -187,7 +187,7 @@ const LIFECYCLE: Array<{ title: string; items: string[] }> = [
   {
     title: 'During a session',
     items: [
-      'Lead with substance. The student paid for your specific experience — give them the real version, including the parts that are uncomfortable to hear.',
+      'Lead with substance. The student paid for your specific experience, so give them the real version, including the parts that are uncomfortable to hear.',
       'Be direct and honest. If their resume isn’t landing or their target is unrealistic, say so plainly and kindly.',
       'Keep it actionable. They should leave with clear next steps, not vague encouragement.',
       'Stay in your lane. Speak to what you actually know; if something is outside your experience, say so rather than guessing.',
@@ -205,7 +205,7 @@ const LIFECYCLE: Array<{ title: string; items: string[] }> = [
 const CONDUCT: Array<{ title: string; body: string }> = [
   {
     title: 'Everything stays on-platform',
-    body: 'All scheduling and all payment happen through Trajectory. Never arrange sessions or take payment off-platform, at any commission tier. Being asked to — or asking a student to — is a serious violation.',
+    body: 'All scheduling and all payment happen through Trajectory. Never arrange sessions or take payment off-platform, at any commission tier. Being asked to, or asking a student to, is a serious violation.',
   },
   {
     title: 'Be who you say you are',
@@ -213,7 +213,7 @@ const CONDUCT: Array<{ title: string; body: string }> = [
   },
   {
     title: 'No guarantees',
-    body: 'You don’t promise a job, an admission, an offer, or any specific outcome. You share experience and honest guidance — nothing more is promised.',
+    body: 'You don’t promise a job, an admission, an offer, or any specific outcome. You share experience and honest guidance, and nothing more is promised.',
   },
   {
     title: 'Confidentiality',

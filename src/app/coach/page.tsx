@@ -55,7 +55,7 @@ export default async function CoachHome() {
   const referralUrl = `${env.NEXT_PUBLIC_APP_URL}/r/${profile.referralCode}`
 
   return (
-    <main className="flex-1">
+    <main className="w-full max-w-5xl flex-1">
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
           <div className="flex items-center gap-2.5">
@@ -71,7 +71,7 @@ export default async function CoachHome() {
               ? 'Your profile isn’t currently visible to students. If you think that’s a mistake, get in touch.'
               : live
                 ? 'Students can find and book you. Everything below is done.'
-                : `You’re ${remaining} step${remaining === 1 ? '' : 's'} from going live. Finish these and your profile publishes automatically — no waiting on approval.`}
+                : `You’re ${remaining} step${remaining === 1 ? '' : 's'} from going live. Finish these and your profile publishes automatically, with no waiting on approval.`}
           </p>
         </div>
         <Badge variant="secondary" className="mt-1">

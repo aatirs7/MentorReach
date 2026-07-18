@@ -6,6 +6,7 @@ import { Card } from '@/components/ui/card'
 import { db } from '@/db'
 import { coachOfferings, sessionNotes, sessions, users } from '@/db/schema'
 import { requireUser } from '@/lib/auth/guards'
+import { readViewAsCoachId } from '@/lib/auth/view-as'
 import { isTerminal, type SessionStatus } from '@/lib/sessions'
 
 export const metadata = { title: 'Your sessions' }
@@ -16,15 +17,27 @@ export const metadata = { title: 'Your sessions' }
  * side of it changes.
  *
  * For coaches this is one tab of their workspace, so it renders inside the coach sidebar
- * shell (left-aligned). Students see it standalone and centered.
+ * shell. Students see it standalone. When an admin is previewing a coach (view-as), we
+ * resolve that coach's id — same rule as requireCoach() — so the sidebar shows AND the
+ * sessions are the coach's, not the admin's; the cookie is honored only after auth
+ * resolves to an admin here.
  */
 export default async function SessionsPage() {
-  const user = await requireUser()
-  const viewerRole: 'student' | 'coach' = user.role === 'coach' ? 'coach' : 'student'
-  const isCoach = viewerRole === 'coach'
+  const me = await requireUser()
+
+  let effectiveUserId = me.id
+  let isCoach = me.role === 'coach'
+  if (me.role === 'admin') {
+    const targetId = await readViewAsCoachId()
+    if (targetId) {
+      effectiveUserId = targetId
+      isCoach = true
+    }
+  }
+  const viewerRole: 'student' | 'coach' = isCoach ? 'coach' : 'student'
 
   const rows = await db.query.sessions.findMany({
-    where: or(eq(sessions.studentId, user.id), eq(sessions.coachId, user.id)),
+    where: or(eq(sessions.studentId, effectiveUserId), eq(sessions.coachId, effectiveUserId)),
     orderBy: [desc(sessions.scheduledStart), desc(sessions.createdAt)],
   })
 

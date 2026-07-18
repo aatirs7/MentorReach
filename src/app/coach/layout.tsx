@@ -35,7 +35,7 @@ async function viewAsBanner() {
   return (
     <div className="sticky top-0 z-40 flex flex-wrap items-center justify-center gap-3 bg-ink px-6 py-2.5 text-center text-sm text-paper">
       <span>
-        Viewing as <span className="font-medium">{name}</span> — read only. Changes are disabled.
+        Viewing as <span className="font-medium">{name}</span> (read only). Changes are disabled.
       </span>
       <form action={stopViewAsCoach}>
         <Button type="submit" size="sm" variant="secondary">

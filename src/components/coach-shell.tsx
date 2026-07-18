@@ -41,10 +41,12 @@ export function CoachShell({ banner, children }: { banner: ReactNode; children: 
   return (
     <>
       {banner}
-      <div className="mx-auto flex w-full max-w-6xl flex-1 flex-col gap-8 px-4 py-8 md:flex-row md:gap-10 md:px-6 md:py-10">
-        <aside className="shrink-0 md:w-56">
-          <nav className="sticky top-6">
-            <p className="label-mono px-3 pb-2">Coach</p>
+      <div className="flex w-full flex-1 flex-col gap-6 px-5 py-6 md:flex-row md:gap-10 md:px-8 md:py-10">
+        <aside className="shrink-0 md:w-60">
+          <nav className="sticky top-6 rounded-2xl border border-line/15 bg-ink p-3 text-paper shadow-sm">
+            <p className="px-2.5 pt-1 pb-2 font-mono text-xs tracking-widest text-paper/50 uppercase">
+              Coach
+            </p>
             <ul className="flex gap-1 overflow-x-auto md:flex-col md:overflow-visible">
               {NAV.map((item) => {
                 const active = item.exact
@@ -55,13 +57,13 @@ export function CoachShell({ banner, children }: { banner: ReactNode; children: 
                     <Link
                       href={item.href}
                       aria-current={active ? 'page' : undefined}
-                      className={`flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm transition-colors ${
+                      className={`flex items-center gap-2.5 rounded-lg px-2.5 py-2 text-sm transition-colors ${
                         active
-                          ? 'bg-secondary font-medium text-ink'
-                          : 'text-slate hover:bg-secondary/60 hover:text-ink'
+                          ? 'bg-gold font-medium text-ink'
+                          : 'text-paper/70 hover:bg-paper/10 hover:text-paper'
                       }`}
                     >
-                      <span className={active ? 'text-gold' : 'text-slate'}>{item.icon}</span>
+                      <span className={active ? 'text-ink' : 'text-gold'}>{item.icon}</span>
                       <span className="whitespace-nowrap">{item.label}</span>
                     </Link>
                   </li>

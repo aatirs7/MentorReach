@@ -23,7 +23,7 @@ export default async function CoachAvailabilityPage() {
         <h1 className="mt-2 text-3xl sm:text-4xl">Your availability</h1>
         <p className="mt-2 max-w-prose text-slate">
           Set the hours you&rsquo;re open to coach. Students book a Zoom session directly into these
-          times — we create the meeting for you.
+          times, and we create the meeting for you.
         </p>
       </div>
 

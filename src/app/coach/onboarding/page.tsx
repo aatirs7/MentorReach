@@ -267,7 +267,7 @@ function WelcomeStep() {
       <p className="mx-auto mt-4 max-w-prose text-slate">
         This takes about ten minutes. You&rsquo;ll add your profile and photo, set your rates,
         connect your calendar and payouts, and sign the handbook. Your profile goes live
-        automatically the moment everything&rsquo;s done — there&rsquo;s no waiting on approval.
+        automatically the moment everything&rsquo;s done. There&rsquo;s no waiting on approval.
       </p>
       <Card className="mx-auto mt-8 max-w-md border-line/20 p-6 text-left">
         <p className="label-mono">Have these handy</p>
@@ -295,7 +295,7 @@ function PayoutsStep({ enabled }: { enabled: boolean }) {
       ) : (
         <p className="mx-auto max-w-md text-sm text-slate">
           We use Stripe to pay you out after each session. Connecting takes a couple of minutes
-          and opens in the same tab — come back here when you&rsquo;re done.
+          and opens in the same tab. Come back here when you&rsquo;re done.
         </p>
       )}
       <div className="flex flex-wrap justify-center gap-3">
