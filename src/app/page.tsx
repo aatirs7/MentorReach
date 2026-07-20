@@ -1,5 +1,6 @@
+import Image from 'next/image'
 import Link from 'next/link'
-import { CoachAvatar, CoachCard } from '@/components/coach-card'
+import { CoachCard } from '@/components/coach-card'
 import { Button } from '@/components/ui/button'
 import { getDbUser } from '@/lib/auth/ensure-user'
 import { browseCoaches, listIndustries, rosterEmployers } from '@/lib/browse'
@@ -9,12 +10,11 @@ import { TRUST_BLOCK_BODY, TRUST_BLOCK_TITLE } from '@/lib/policy-copy'
  * Spec §1 — the homepage. Warm, editorial, generous whitespace, no heavy shadows.
  *
  * SECTION RHYTHM. Tones alternate the whole way down so the page has a pulse as you
- * scroll, rather than reading as one flat template:
+ * scroll, rather than reading as one flat ivory template:
  *
- *   hero          INK         full-bleed, centered type + roster proof
- *   how it works  sand        recessed band, raised cards
+ *   hero          sand        (a step down from paper)
  *   coaches       paper       + raised cards
- *   coach CTA     INK         full-bleed
+ *   coach CTA     INK         full-bleed, the anchor contrast moment
  *   trust         sand-deep
  *   footer        ink
  *
@@ -24,14 +24,6 @@ import { TRUST_BLOCK_BODY, TRUST_BLOCK_TITLE } from '@/lib/policy-copy'
  * both keeps the alternation honest and closes the page on a reassurance.
  *
  * Depth comes from those blocks, not shadows (§1).
- *
- * TWO THINGS NOT TO UNDO:
- *  - The hero is CENTERED TYPE, not text-left/card-right. That split, over a warm
- *    ground, under a serif headline carrying one accent-colored phrase, is the shared
- *    composition of this whole category — see the note at the top of globals.css.
- *  - The hero is INK. Putting it on the near-white ground was tried and looked like an
- *    unstyled draft: with the navy and gold below the fold there was no brand color
- *    above it at all.
  */
 export default async function Home() {
   const user = await getDbUser()
@@ -45,144 +37,125 @@ export default async function Home() {
   const ctaHref = user ? (user.role === 'coach' ? '/coach' : '/coaches') : '/coaches'
 
   return (
-    <main className="editorial flex-1">
+    <main className="flex-1">
       {/* ---------------------------------------------------------------- HERO */}
-      {/*
-       * The hero IS the ink block. An earlier pass put the headline on the near-white
-       * ground with the ink and gold pushed below the fold, and it read as an unstyled
-       * draft: three neutrals, no brand color, nothing anchoring a very tall section.
-       * Differentiating from the category by SUBTRACTION produced blandness. The brand
-       * is a deep navy with a gold accent — so lead with it.
-       */}
-      <section className="relative overflow-hidden bg-ink text-paper">
-        {/* Two offset washes, not one: a single centered glow reads as a gradient
-            preset. Offsetting them gives the flat navy a direction of light. */}
+      <section className="relative overflow-hidden border-b border-line/15 bg-sand">
+        {/* Warm gold wash: a soft light source, not a shadow. */}
         <div
           aria-hidden
-          className="pointer-events-none absolute -top-48 right-[-10%] size-[42rem] rounded-full opacity-25 blur-3xl"
+          className="pointer-events-none absolute -top-40 -right-40 size-[36rem] rounded-full opacity-20 blur-3xl"
           style={{ background: 'radial-gradient(circle, var(--gold), transparent 70%)' }}
         />
-        <div
-          aria-hidden
-          className="pointer-events-none absolute bottom-[-20rem] left-[-10%] size-[38rem] rounded-full opacity-40 blur-3xl"
-          style={{ background: 'radial-gradient(circle, var(--line), transparent 70%)' }}
-        />
 
-        <div className="relative mx-auto w-full max-w-4xl px-6 pt-24 pb-20 text-center">
-          <p className="eyebrow text-gold">Career coaching, honestly</p>
+        <div className="relative mx-auto grid w-full max-w-5xl gap-14 px-6 pt-24 pb-24 lg:grid-cols-[1.1fr_1fr] lg:items-center">
+          <div>
+            {/*
+             * No leading rule before the label. A short dash butted against a mono
+             * uppercase eyebrow is the most literally copied detail in this category
+             * (mentorandi.com opens with exactly that), and it costs nothing to drop.
+             */}
+            <p className="label-mono">Career coaching, honestly</p>
 
-          {/*
-           * No accent-colored phrase inside the headline — that device is the category's
-           * signature. The contrast does the work here instead.
-           */}
-          <h1 className="text-hero mx-auto mt-6 max-w-4xl text-balance text-paper">
-            Reach the people who&rsquo;ve been there.
-          </h1>
+            <h1 className="text-hero mt-6">
+              Reach the people who&rsquo;ve <span className="italic text-line">been there</span>.
+            </h1>
 
-          <p className="mx-auto mt-7 max-w-xl text-lg leading-relaxed text-paper/70">
-            Book time with people who already have the job you want. No mentorship theater
-            and no generic advice. Just a real conversation with someone who did the thing
-            you&rsquo;re trying to do.
-          </p>
+            <p className="mt-7 max-w-lg text-lg leading-relaxed text-slate">
+              Book time with people who already have the job you want. No mentorship theater
+              and no generic advice. Just a real conversation with someone who did the thing
+              you&rsquo;re trying to do.
+            </p>
 
-          <div className="mt-9 flex flex-wrap justify-center gap-3">
-            <Button asChild size="lg" className="bg-gold text-ink hover:bg-gold/90">
-              <Link href={ctaHref}>{user ? 'Go to your dashboard' : 'Find a coach'}</Link>
-            </Button>
-            {!user ? (
-              <Button
-                asChild
-                size="lg"
-                variant="outline"
-                className="border-paper/25 bg-transparent text-paper hover:bg-paper/10 hover:text-paper"
-              >
-                <Link href="/coaches/apply">Coach on MentorReach</Link>
+            <div className="mt-9 flex flex-wrap gap-3">
+              <Button asChild size="lg">
+                <Link href={ctaHref}>{user ? 'Go to your dashboard' : 'Find a coach'}</Link>
               </Button>
+              {!user ? (
+                <Button asChild size="lg" variant="outline">
+                  <Link href="/coaches/apply">Coach on MentorReach</Link>
+                </Button>
+              ) : null}
+            </div>
+
+            {industries.length > 0 ? (
+              <div className="mt-10 border-t border-line/15 pt-6">
+                <p className="label-mono">Coaching across</p>
+                <div className="mt-3 flex flex-wrap gap-x-4 gap-y-1.5">
+                  {industries.slice(0, 7).map((i) => (
+                    <span key={i} className="text-sm text-slate">
+                      {i}
+                    </span>
+                  ))}
+                </div>
+              </div>
             ) : null}
           </div>
 
           {/*
-           * Proof, above the fold, from the live roster — real faces and real employers
-           * rather than a claim. Both are roster-derived: if the roster empties, this
-           * renders nothing instead of becoming a lie.
+           * The ink panel sits BESIDE the headline: it's the main contrast block and the
+           * reason the hero doesn't read as bare text on a flat field. The image is part
+           * of the same card rather than a separate element, so the hero stays one
+           * composition.
            */}
-          {featured.length > 0 ? (
-            <div className="mt-14 flex flex-col items-center gap-4 border-t border-paper/10 pt-8">
-              <div className="flex -space-x-3">
-                {featured.slice(0, 5).map((c) => (
-                  <CoachAvatar
-                    key={c.userId}
-                    coach={c}
-                    size={40}
-                    className="ring-2 ring-ink"
-                  />
+          <aside className="overflow-hidden rounded-2xl bg-ink text-paper">
+            {/*
+             * ⚠️ PLACEHOLDER ART — swap for real brand photography.
+             * Deliberately abstract/editorial, NOT a face: a generated face here would
+             * imply a person who doesn't exist, on a page promising real people.
+             * Host allowlisted in next.config.ts; remove both when real art lands.
+             */}
+            <Image
+              src="https://picsum.photos/seed/mentorreach-hero/1200/900"
+              alt=""
+              width={1200}
+              height={900}
+              priority
+              aria-hidden
+              className="h-44 w-full object-cover opacity-80"
+            />
+
+            <div className="p-8">
+              <p className="font-mono text-xs tracking-widest text-gold uppercase">How it works</p>
+              <ol className="mt-6 space-y-6">
+                {[
+                  { n: '01', t: 'Tell us where you’re headed', d: 'A short survey covering your year, your field, and what you need.' },
+                  { n: '02', t: 'Pick someone who’s been there', d: 'Pick someone who’s actually done the thing you’re aiming for.' },
+                  { n: '03', t: 'Book, pay, and talk', d: 'Pay securely, pick a time. Free cancellation up to 24 hours before.' },
+                ].map((s) => (
+                  <li key={s.n} className="flex gap-4">
+                    <span className="font-mono text-xs text-gold">{s.n}</span>
+                    <div>
+                      <p className="font-display text-lg leading-snug text-paper">{s.t}</p>
+                      <p className="mt-1 text-sm leading-relaxed text-paper/60">{s.d}</p>
+                    </div>
+                  </li>
                 ))}
-              </div>
-              {employers.length > 0 ? (
-                <p className="max-w-lg text-sm leading-relaxed text-paper/55">
-                  Hand-picked coaches from{' '}
-                  <span className="text-paper/80">{employers.slice(0, 5).join(', ')}</span>
-                  {employers.length > 5 ? ', and more.' : '.'}
-                </p>
-              ) : null}
+              </ol>
             </div>
-          ) : null}
-        </div>
-      </section>
-
-      {/* -------------------------------------------------------- HOW IT WORKS */}
-      {/*
-       * Recessed sand band with LIFTED cards. The previous version was three bare
-       * columns of text, which is where a lot of the "unfinished" read came from —
-       * stacked surfaces give the section a floor and a ceiling without a shadow (§1).
-       */}
-      <section className="border-y border-line/10 bg-sand">
-        <div className="mx-auto w-full max-w-5xl px-6 py-20">
-          <p className="eyebrow text-center">How it works</p>
-          <h2 className="text-section mt-3 text-center">Three steps, no theater</h2>
-
-          <ol className="mt-12 grid gap-5 sm:grid-cols-3">
-            {[
-              { n: '01', t: 'Tell us where you’re headed', d: 'A short survey covering your year, your field, and what you need.' },
-              { n: '02', t: 'Pick someone who’s been there', d: 'Pick someone who’s actually done the thing you’re aiming for.' },
-              { n: '03', t: 'Book, pay, and talk', d: 'Pay securely, pick a time. Free cancellation up to 24 hours before.' },
-            ].map((s) => (
-              <li
-                key={s.n}
-                className="rounded-xl border border-line/15 bg-raised p-6 text-center"
-              >
-                <span className="mx-auto flex size-9 items-center justify-center rounded-full bg-ink font-mono text-xs text-gold">
-                  {s.n}
-                </span>
-                <h3 className="mt-4 text-lg leading-snug">{s.t}</h3>
-                <p className="mt-2 text-sm leading-relaxed text-slate">{s.d}</p>
-              </li>
-            ))}
-          </ol>
+          </aside>
         </div>
       </section>
 
       {/* ----------------------------------------------------------- COACHES */}
       {featured.length > 0 ? (
         <section className="mx-auto w-full max-w-5xl px-6 py-24 text-center">
-          <p className="eyebrow">Our coaches</p>
-          <h2 className="text-section mt-3">People who&rsquo;ve done it</h2>
+          <p className="label-mono">Our coaches</p>
+          <h2 className="text-section mt-2">People who&rsquo;ve done it</h2>
           <p className="mx-auto mt-4 max-w-md text-slate">
             Hand-picked. We personally review every coach before they join.
           </p>
 
           {/*
            * Roster-derived, never hardcoded: a fixed list becomes a false claim the moment
-           * a coach leaves. If the roster empties, this renders nothing. (The employer
-           * list is the same idea, but it now sits in the hero as above-the-fold proof.)
+           * a coach leaves. If the roster empties, this renders nothing.
            */}
-          {industries.length > 0 ? (
+          {employers.length > 0 ? (
             <div className="mt-9 border-y border-line/15 py-5">
-              <p className="eyebrow">Coaching across</p>
+              <p className="label-mono">Coaches from</p>
               <div className="mt-3 flex flex-wrap justify-center gap-x-6 gap-y-2">
-                {industries.slice(0, 7).map((i) => (
-                  <span key={i} className="font-display text-base text-ink/70">
-                    {i}
+                {employers.map((e) => (
+                  <span key={e} className="font-display text-base text-ink/70">
+                    {e}
                   </span>
                 ))}
               </div>
@@ -212,7 +185,7 @@ export default async function Home() {
           style={{ background: 'radial-gradient(circle, var(--gold), transparent 70%)' }}
         />
         <div className="relative mx-auto w-full max-w-3xl px-6 py-28 text-center">
-          <p className="eyebrow text-paper/50">For coaches</p>
+          <p className="font-mono text-xs tracking-widest text-gold uppercase">For coaches</p>
           <h2 className="text-section mt-4 text-paper">Know something worth sharing?</h2>
           <p className="mx-auto mt-5 max-w-md text-lg leading-relaxed text-paper/70">
             Set your own rates and hours. Get paid per session. We review every coach before
