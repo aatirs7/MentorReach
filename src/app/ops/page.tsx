@@ -3,8 +3,9 @@ import { OpsBoard, type OpsTaskView } from './board'
 import { seedOpsBoard } from './actions'
 import { db } from '@/db'
 import { tasks } from '@/db/schema'
+import { NO_INDEX } from '@/lib/seo'
 
-export const metadata = { title: 'MentorReach Ops' }
+export const metadata = { title: 'MentorReach Ops', ...NO_INDEX }
 export const dynamic = 'force-dynamic'
 
 /**

@@ -12,8 +12,9 @@ import { formatPrice } from '@/lib/coach-schema'
 import { COACH_SOURCED_BPS, PLATFORM_SOURCED_BPS } from '@/lib/commission'
 import { coachHasAvailability } from '@/lib/scheduling'
 import { env } from '@/lib/env'
+import { NO_INDEX } from '@/lib/seo'
 
-export const metadata = { title: 'Your coaching' }
+export const metadata = { title: 'Your coaching', ...NO_INDEX }
 
 /**
  * The coach's home and self-serve checklist.

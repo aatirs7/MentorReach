@@ -2,8 +2,9 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { NO_INDEX } from '@/lib/seo'
 
-export const metadata = { title: 'Style guide' }
+export const metadata = { title: 'Style guide', ...NO_INDEX }
 
 /**
  * Phase 0 brand proof (spec §1). Internal — not linked from anywhere.

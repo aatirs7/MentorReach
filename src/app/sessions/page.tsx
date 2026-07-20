@@ -8,8 +8,9 @@ import { coachOfferings, sessionNotes, sessions, users } from '@/db/schema'
 import { requireUser } from '@/lib/auth/guards'
 import { readViewAsCoachId } from '@/lib/auth/view-as'
 import { isTerminal, type SessionStatus } from '@/lib/sessions'
+import { NO_INDEX } from '@/lib/seo'
 
-export const metadata = { title: 'Your sessions' }
+export const metadata = { title: 'Your sessions', ...NO_INDEX }
 
 /**
  * Spec §12 — the Coaching Sessions dashboard, for BOTH roles: upcoming + past, with

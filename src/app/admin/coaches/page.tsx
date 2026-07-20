@@ -11,8 +11,9 @@ import { requireAdmin } from '@/lib/auth/guards'
 import { inviteUrl } from '@/lib/coach-invite'
 import { coachChecklist, isCoachLive } from '@/lib/coach-publish'
 import { formatPrice } from '@/lib/coach-schema'
+import { NO_INDEX } from '@/lib/seo'
 
-export const metadata = { title: 'Coaches' }
+export const metadata = { title: 'Coaches', ...NO_INDEX }
 export const dynamic = 'force-dynamic'
 
 /**

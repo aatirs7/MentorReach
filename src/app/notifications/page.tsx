@@ -1,8 +1,9 @@
 import { Card } from '@/components/ui/card'
 import { requireUser } from '@/lib/auth/guards'
 import { listNotifications, markAllRead } from '@/lib/notifications'
+import { NO_INDEX } from '@/lib/seo'
 
-export const metadata = { title: 'Notifications' }
+export const metadata = { title: 'Notifications', ...NO_INDEX }
 export const dynamic = 'force-dynamic'
 
 const LABELS: Record<string, string> = {

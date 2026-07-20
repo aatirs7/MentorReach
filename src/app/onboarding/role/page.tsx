@@ -3,8 +3,9 @@ import { redirect } from 'next/navigation'
 import { RolePicker } from './role-picker'
 import { requireUser } from '@/lib/auth/guards'
 import type { Role } from '@/types/globals'
+import { NO_INDEX } from '@/lib/seo'
 
-export const metadata = { title: 'Choose your path' }
+export const metadata = { title: 'Choose your path', ...NO_INDEX }
 
 /**
  * Spec §3 — role is chosen at signup and drives everything after.

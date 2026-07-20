@@ -6,8 +6,9 @@ import { db } from '@/db'
 import { studentSurveys, users } from '@/db/schema'
 import { requireAdmin } from '@/lib/auth/guards'
 import { PATH_CERTAINTY_LABELS } from '@/lib/survey-schema'
+import { NO_INDEX } from '@/lib/seo'
 
-export const metadata = { title: 'Student survey' }
+export const metadata = { title: 'Student survey', ...NO_INDEX }
 export const dynamic = 'force-dynamic'
 
 /** Full onboarding-survey responses for one student (spec §7). */

@@ -6,8 +6,9 @@ import { Card } from '@/components/ui/card'
 import { db } from '@/db'
 import { coachApplications } from '@/db/schema'
 import { requireAdmin } from '@/lib/auth/guards'
+import { NO_INDEX } from '@/lib/seo'
 
-export const metadata = { title: 'Coach applications' }
+export const metadata = { title: 'Coach applications', ...NO_INDEX }
 export const dynamic = 'force-dynamic'
 
 /**

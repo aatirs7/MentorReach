@@ -6,8 +6,9 @@ import { db } from '@/db'
 import { coachOfferings, sessions, users } from '@/db/schema'
 import { requireStudent } from '@/lib/auth/guards'
 import { formatPrice } from '@/lib/coach-schema'
+import { NO_INDEX } from '@/lib/seo'
 
-export const metadata = { title: 'Booking confirmed' }
+export const metadata = { title: 'Booking confirmed', ...NO_INDEX }
 export const dynamic = 'force-dynamic'
 
 /**

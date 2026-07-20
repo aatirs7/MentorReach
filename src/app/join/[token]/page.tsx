@@ -6,8 +6,9 @@ import { Card } from '@/components/ui/card'
 import { db } from '@/db'
 import { coachInvites } from '@/db/schema'
 import { ensureUser } from '@/lib/auth/ensure-user'
+import { NO_INDEX } from '@/lib/seo'
 
-export const metadata = { title: 'Your coach invite' }
+export const metadata = { title: 'Your coach invite', ...NO_INDEX }
 export const dynamic = 'force-dynamic'
 
 /** Kept out of the component body so the render stays pure (the authoritative expiry check

@@ -9,8 +9,9 @@ import { platformStats } from '@/lib/admin-stats'
 import { isCoachLive } from '@/lib/coach-publish'
 import { formatPrice } from '@/lib/coach-schema'
 import { bookingEnabled } from '@/lib/env'
+import { NO_INDEX } from '@/lib/seo'
 
-export const metadata = { title: 'Admin' }
+export const metadata = { title: 'Admin', ...NO_INDEX }
 export const dynamic = 'force-dynamic'
 
 /** Admin home — the state of the business at a glance, and the way into everything. */

@@ -3,8 +3,9 @@ import { Card } from '@/components/ui/card'
 import { ConsoleHeader } from '@/components/console-shell'
 import { requireAdmin } from '@/lib/auth/guards'
 import { bookingEnabled, integrationStatus } from '@/lib/env'
+import { NO_INDEX } from '@/lib/seo'
 
-export const metadata = { title: 'Integrations' }
+export const metadata = { title: 'Integrations', ...NO_INDEX }
 export const dynamic = 'force-dynamic'
 
 /**

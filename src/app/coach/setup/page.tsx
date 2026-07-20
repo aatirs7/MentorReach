@@ -4,8 +4,9 @@ import { CoachSetupForm } from './setup-form'
 import { db } from '@/db'
 import { coachOfferings } from '@/db/schema'
 import { requireCoach } from '@/lib/auth/guards'
+import { NO_INDEX } from '@/lib/seo'
 
-export const metadata = { title: 'Edit your profile' }
+export const metadata = { title: 'Edit your profile', ...NO_INDEX }
 export const dynamic = 'force-dynamic'
 
 /**

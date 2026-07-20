@@ -9,6 +9,23 @@ export const metadata = {
   title: 'Browse coaches',
   description:
     'Book time with people who already have the job you want. Every coach is hand-picked and personally reviewed before they join.',
+  /**
+   * Canonical is the BARE path, on purpose. The filters below are query params, so
+   * /coaches?industry=Technology&length=30&max=8000 and every other combination is a
+   * distinct URL serving a subset of the same cards. Left alone that's dozens of
+   * near-duplicate pages splitting the ranking signal of the one page that matters.
+   *
+   * Pointing them all here consolidates that signal. It also means the filtered views
+   * aren't independently indexable — the right trade until there are real per-industry
+   * landing pages with their own copy, which is a content job, not a metadata one.
+   */
+  alternates: { canonical: '/coaches' },
+  openGraph: {
+    title: 'Browse coaches · MentorReach',
+    description:
+      'Book time with people who already have the job you want. Every coach is hand-picked and personally reviewed before they join.',
+    url: '/coaches',
+  },
 }
 
 /**

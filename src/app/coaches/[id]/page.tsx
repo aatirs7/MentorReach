@@ -1,21 +1,51 @@
 import { notFound } from 'next/navigation'
 import { BookPanel } from './book-panel'
 import { CoachAvatar, SpecialtyTags } from '@/components/coach-card'
+import { JsonLd } from '@/components/json-ld'
 import { Badge } from '@/components/ui/badge'
 import { bookingGate } from '@/lib/auth/guards'
-import { getPublicCoach } from '@/lib/browse'
+import { employerFromTitle, getPublicCoach } from '@/lib/browse'
 import { bookingEnabled } from '@/lib/env'
+import { NO_INDEX, absoluteUrl } from '@/lib/seo'
 
 export async function generateMetadata({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
   const data = await getPublicCoach(id)
 
-  if (!data) return { title: 'Coach' }
+  // Not live → the page 404s below, so keep it out of the index either way.
+  if (!data) return { title: 'Coach', ...NO_INDEX }
+
+  const name = data.coach.fullName ?? 'Coach'
+  /**
+   * Cut on a word boundary, not mid-word. A description ending "…helps students bre" is
+   * what a truncated slice actually produces, and it is the snippet a search result shows.
+   */
+  const description = truncate(
+    `${data.profile.currentTitle}. ${data.profile.bio}`.replace(/\s+/g, ' ').trim(),
+    155,
+  )
+  const path = `/coaches/${id}`
 
   return {
-    title: data.coach.fullName ?? 'Coach',
-    description: `${data.profile.currentTitle}. ${data.profile.bio.slice(0, 140)}`,
+    title: `${name} — ${data.profile.industry} coach`,
+    description,
+    // Absolute canonical, so a profile reached with tracking params still consolidates.
+    alternates: { canonical: path },
+    openGraph: {
+      type: 'profile',
+      title: `${name} — ${data.profile.industry} coach`,
+      description,
+      url: path,
+    },
+    twitter: { card: 'summary_large_image' as const, title: name, description },
   }
+}
+
+function truncate(text: string, max: number): string {
+  if (text.length <= max) return text
+  const cut = text.slice(0, max)
+  const lastSpace = cut.lastIndexOf(' ')
+  return `${(lastSpace > max * 0.6 ? cut.slice(0, lastSpace) : cut).trimEnd()}…`
 }
 
 /**
@@ -47,8 +77,66 @@ export default async function CoachProfilePage({ params }: { params: Promise<{ i
     disabledReason = 'This coach is still setting up payouts and can’t take bookings yet.'
   }
 
+  const path = absoluteUrl(`/coaches/${id}`)
+  const employer = employerFromTitle(profile.currentTitle)
+
   return (
     <main className="mx-auto w-full max-w-7xl flex-1 px-6 py-14">
+      {/*
+       * Person + Offer is what turns a profile from a blue link into a result carrying a
+       * role and a price. Every value here is already rendered on the page for humans —
+       * structured data that claims something the page doesn't show is a manual-action
+       * risk, not a shortcut.
+       *
+       * One Offer per active offering rather than a single "from" price, because each
+       * session length genuinely is a separate purchasable thing.
+       */}
+      <JsonLd
+        data={[
+          {
+            '@context': 'https://schema.org',
+            '@type': 'ProfilePage',
+            '@id': `${path}#profilepage`,
+            url: path,
+            isPartOf: { '@id': absoluteUrl('/#website') },
+            mainEntity: {
+              '@type': 'Person',
+              '@id': `${path}#person`,
+              name: coach.fullName ?? 'Coach',
+              jobTitle: profile.currentTitle,
+              description: profile.bio,
+              knowsAbout: profile.specialties,
+              ...(employer ? { worksFor: { '@type': 'Organization', name: employer } } : {}),
+            },
+          },
+          {
+            '@context': 'https://schema.org',
+            '@type': 'Service',
+            '@id': `${path}#service`,
+            serviceType: `${profile.industry} career coaching`,
+            provider: { '@id': `${path}#person` },
+            areaServed: 'Worldwide',
+            offers: offerings.map((o) => ({
+              '@type': 'Offer',
+              name: `${o.lengthMinutes}-minute coaching session`,
+              price: (o.priceCents / 100).toFixed(2),
+              priceCurrency: 'USD',
+              availability: 'https://schema.org/InStock',
+              url: path,
+            })),
+          },
+          {
+            '@context': 'https://schema.org',
+            '@type': 'BreadcrumbList',
+            itemListElement: [
+              { '@type': 'ListItem', position: 1, name: 'Home', item: absoluteUrl('/') },
+              { '@type': 'ListItem', position: 2, name: 'Coaches', item: absoluteUrl('/coaches') },
+              { '@type': 'ListItem', position: 3, name: coach.fullName ?? 'Coach', item: path },
+            ],
+          },
+        ]}
+      />
+
       <div className="grid gap-12 lg:grid-cols-[1fr_360px]">
         <div>
           <div className="flex items-start gap-5">

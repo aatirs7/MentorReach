@@ -6,8 +6,9 @@ import { Card } from '@/components/ui/card'
 import { db } from '@/db'
 import { users } from '@/db/schema'
 import { requireAdmin } from '@/lib/auth/guards'
+import { NO_INDEX } from '@/lib/seo'
 
-export const metadata = { title: 'Students' }
+export const metadata = { title: 'Students', ...NO_INDEX }
 export const dynamic = 'force-dynamic'
 
 /** Admin view of students and their onboarding survey. */

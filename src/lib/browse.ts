@@ -132,6 +132,30 @@ export async function browseCoaches(filters: BrowseFilters = {}): Promise<CoachC
 }
 
 /**
+ * Just the ids and change dates of publicly visible coaches, for src/app/sitemap.ts.
+ *
+ * Deliberately NOT browseCoaches(): that fans out to users + offerings and collapses one
+ * row per offering in JS to build a rendered card. A sitemap needs two columns, and
+ * running the heavier query would put profile bios and prices on a path that only ever
+ * emits URLs.
+ *
+ * It reuses liveCoachSql() and the same active-offering join, so the sitemap can't list a
+ * coach whose page would 404 — the one failure mode that actively costs you crawl budget.
+ */
+export async function sitemapCoaches(): Promise<Array<{ userId: string; updatedAt: Date }>> {
+  const rows = await db
+    .selectDistinct({ userId: coachProfiles.userId, updatedAt: coachProfiles.updatedAt })
+    .from(coachProfiles)
+    .innerJoin(
+      coachOfferings,
+      and(eq(coachOfferings.coachId, coachProfiles.userId), eq(coachOfferings.isActive, true)),
+    )
+    .where(liveCoachSql())
+
+  return rows
+}
+
+/**
  * A single coach's public profile (§8). Returns null unless the coach is LIVE — an
  * incomplete real coach's page 404s rather than being viewable by URL, matching browse.
  */

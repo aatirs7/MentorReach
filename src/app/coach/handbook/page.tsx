@@ -1,8 +1,10 @@
 import Link from 'next/link'
 import type { ReactNode } from 'react'
 import { Button } from '@/components/ui/button'
+import { NO_INDEX } from '@/lib/seo'
 
 export const metadata = {
+  ...NO_INDEX,
   title: 'Coach Handbook',
   description:
     'How we expect coaches to operate on MentorReach. Completing onboarding means you agree to these standards.',

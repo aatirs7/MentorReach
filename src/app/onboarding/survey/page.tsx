@@ -2,8 +2,9 @@ import { redirect } from 'next/navigation'
 import { getMySurvey } from './actions'
 import { SurveyForm } from './survey-form'
 import { requireUser } from '@/lib/auth/guards'
+import { NO_INDEX } from '@/lib/seo'
 
-export const metadata = { title: 'A few questions' }
+export const metadata = { title: 'A few questions', ...NO_INDEX }
 
 /**
  * Spec §7 — the mandatory student survey. Hard rule §2.3 gates browse/book on it.

@@ -3,8 +3,9 @@ import { AvailabilityEditor } from './availability-editor'
 import { db } from '@/db'
 import { coachAvailabilityBlackouts, coachAvailabilityRules } from '@/db/schema'
 import { requireCoach } from '@/lib/auth/guards'
+import { NO_INDEX } from '@/lib/seo'
 
-export const metadata = { title: 'Your availability' }
+export const metadata = { title: 'Your availability', ...NO_INDEX }
 export const dynamic = 'force-dynamic'
 
 /** Coach availability editor (native scheduler). Supports admin read-only view-as. */

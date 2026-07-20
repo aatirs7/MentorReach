@@ -8,6 +8,7 @@ import { ResumeUploader } from '../setup/fields/resume-uploader'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { db } from '@/db'
+import { NO_INDEX } from '@/lib/seo'
 import {
   coachApplications,
   coachAvailabilityBlackouts,
@@ -22,7 +23,7 @@ import { readViewAsCoachId } from '@/lib/auth/view-as'
 import { INDUSTRIES } from '@/lib/coach-schema'
 import { hasRealPhoto } from '@/lib/coach-publish'
 
-export const metadata = { title: 'Get set up' }
+export const metadata = { title: 'Get set up', ...NO_INDEX }
 export const dynamic = 'force-dynamic'
 
 const STEPS = [

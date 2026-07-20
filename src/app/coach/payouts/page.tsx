@@ -5,6 +5,7 @@ import { Card } from '@/components/ui/card'
 import { db } from '@/db'
 import { coachProfiles } from '@/db/schema'
 import { requireCoach } from '@/lib/auth/guards'
+import { NO_INDEX } from '@/lib/seo'
 import {
   accountPayoutsReady,
   createAccountOnboardingLink,
@@ -13,7 +14,7 @@ import {
   stripeConfigured,
 } from '@/lib/stripe'
 
-export const metadata = { title: 'Payouts' }
+export const metadata = { title: 'Payouts', ...NO_INDEX }
 export const dynamic = 'force-dynamic'
 
 /**

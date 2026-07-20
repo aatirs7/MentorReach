@@ -4,8 +4,9 @@ import { ReportForm } from './report-form'
 import { db } from '@/db'
 import { users } from '@/db/schema'
 import { requireUser } from '@/lib/auth/guards'
+import { NO_INDEX } from '@/lib/seo'
 
-export const metadata = { title: 'Report a problem' }
+export const metadata = { title: 'Report a problem', ...NO_INDEX }
 
 /** Spec §12 — /report?user=<id>&session=<id> */
 export default async function ReportPage({

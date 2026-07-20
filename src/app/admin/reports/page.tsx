@@ -7,8 +7,9 @@ import { Card } from '@/components/ui/card'
 import { db } from '@/db'
 import { reports, users } from '@/db/schema'
 import { requireAdmin } from '@/lib/auth/guards'
+import { NO_INDEX } from '@/lib/seo'
 
-export const metadata = { title: 'Reports' }
+export const metadata = { title: 'Reports', ...NO_INDEX }
 
 /** Spec §12 — admin review queue. Indexed on (status, created_at) for exactly this. */
 export default async function AdminReportsPage() {

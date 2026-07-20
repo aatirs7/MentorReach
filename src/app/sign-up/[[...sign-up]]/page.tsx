@@ -1,6 +1,7 @@
 import { SignUp } from '@clerk/nextjs'
+import { NO_INDEX } from '@/lib/seo'
 
-export const metadata = { title: 'Sign up' }
+export const metadata = { title: 'Sign up', ...NO_INDEX }
 
 export default function SignUpPage() {
   return (

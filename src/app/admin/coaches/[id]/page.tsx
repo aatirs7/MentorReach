@@ -13,8 +13,9 @@ import { coachStats } from '@/lib/admin-stats'
 import { coachChecklist, isCoachLive } from '@/lib/coach-publish'
 import { formatPrice } from '@/lib/coach-schema'
 import { coachHasAvailability } from '@/lib/scheduling'
+import { NO_INDEX } from '@/lib/seo'
 
-export const metadata = { title: 'Coach' }
+export const metadata = { title: 'Coach', ...NO_INDEX }
 export const dynamic = 'force-dynamic'
 
 /**

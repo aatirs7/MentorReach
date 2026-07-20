@@ -1,8 +1,9 @@
 import Link from 'next/link'
 import { Card } from '@/components/ui/card'
 import { requireCoach } from '@/lib/auth/guards'
+import { NO_INDEX } from '@/lib/seo'
 
-export const metadata = { title: 'Resources' }
+export const metadata = { title: 'Resources', ...NO_INDEX }
 
 /**
  * The coach's resource hub — everything they have in one place. Doubles as the final
