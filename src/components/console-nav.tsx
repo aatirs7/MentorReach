@@ -21,25 +21,34 @@ const ITEMS = [
 export function ConsoleNav() {
   const pathname = usePathname()
 
+  /*
+   * The scroll container and the centering live on DIFFERENT elements on purpose.
+   * `justify-center` directly on an `overflow-x-auto` flex row centers by overflowing
+   * BOTH edges, and the leading items then can't be scrolled back to. An inner `w-fit`
+   * row with `mx-auto` centers while it fits and, once it's wider than the container,
+   * the auto margins collapse to zero and normal scrolling takes over.
+   */
   return (
-    <nav className="-mb-px flex gap-1 overflow-x-auto">
-      {ITEMS.map((item) => {
-        const active = item.exact ? pathname === item.href : pathname.startsWith(item.href)
-        return (
-          <Link
-            key={item.href}
-            href={item.href}
-            aria-current={active ? 'page' : undefined}
-            className={`shrink-0 border-b-2 px-3.5 py-2.5 text-sm transition-colors ${
-              active
-                ? 'border-gold font-medium text-ink'
-                : 'border-transparent text-slate hover:text-ink'
-            }`}
-          >
-            {item.label}
-          </Link>
-        )
-      })}
-    </nav>
+    <div className="-mb-px overflow-x-auto">
+      <nav className="mx-auto flex w-fit gap-1">
+        {ITEMS.map((item) => {
+          const active = item.exact ? pathname === item.href : pathname.startsWith(item.href)
+          return (
+            <Link
+              key={item.href}
+              href={item.href}
+              aria-current={active ? 'page' : undefined}
+              className={`shrink-0 border-b-2 px-3.5 py-2.5 text-sm transition-colors ${
+                active
+                  ? 'border-gold font-medium text-ink'
+                  : 'border-transparent text-slate hover:text-ink'
+              }`}
+            >
+              {item.label}
+            </Link>
+          )
+        })}
+      </nav>
+    </div>
   )
 }

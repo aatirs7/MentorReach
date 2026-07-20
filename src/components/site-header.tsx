@@ -2,6 +2,7 @@ import { SignInButton, UserButton } from '@clerk/nextjs'
 import { auth } from '@clerk/nextjs/server'
 import Image from 'next/image'
 import Link from 'next/link'
+import { HideDuringOnboarding } from '@/components/hide-during-onboarding'
 import { Button } from '@/components/ui/button'
 import { getDbUser } from '@/lib/auth/ensure-user'
 import { hasCompletedSurvey } from '@/lib/auth/guards'
@@ -67,31 +68,36 @@ export async function SiteHeader() {
         <nav className="flex items-center gap-1">
           {userId ? (
             <>
-              {/*
-               * §2.3: no browse link for a student until the survey is done, because the
-               * page would only bounce them back to it. Admins get the link regardless:
-               * requireStudent() lets them through to inspect student surfaces, so
-               * hiding it would just mean typing the URL.
-               */}
-              {(user?.role === 'student' && surveyDone) || user?.role === 'admin' ? (
-                <NavLink href="/coaches">Browse</NavLink>
-              ) : null}
+              {/* Onboarding shows the logo and the avatar only — see the component. */}
+              <HideDuringOnboarding>
+                {/*
+                 * §2.3: no browse link for a student until the survey is done, because the
+                 * page would only bounce them back to it. Admins get the link regardless:
+                 * requireStudent() lets them through to inspect student surfaces, so
+                 * hiding it would just mean typing the URL.
+                 */}
+                {(user?.role === 'student' && surveyDone) || user?.role === 'admin' ? (
+                  <NavLink href="/coaches">Browse</NavLink>
+                ) : null}
 
-              {user?.role === 'coach' ? <NavLink href="/coach">Coaching</NavLink> : null}
-              {user?.role === 'admin' ? <NavLink href="/admin">Admin</NavLink> : null}
+                {user?.role === 'coach' ? <NavLink href="/coach">Coaching</NavLink> : null}
+                {user?.role === 'admin' ? <NavLink href="/admin">Admin</NavLink> : null}
 
-              {user && user.role !== 'admin' ? <NavLink href="/sessions">Sessions</NavLink> : null}
+                {user && user.role !== 'admin' ? (
+                  <NavLink href="/sessions">Sessions</NavLink>
+                ) : null}
 
-              {user ? (
-                <NavLink href="/notifications">
-                  Notifications
-                  {unread > 0 ? (
-                    <span className="ml-1.5 rounded-full bg-gold px-1.5 py-0.5 font-mono text-[10px] text-ink">
-                      {unread}
-                    </span>
-                  ) : null}
-                </NavLink>
-              ) : null}
+                {user ? (
+                  <NavLink href="/notifications">
+                    Notifications
+                    {unread > 0 ? (
+                      <span className="ml-1.5 rounded-full bg-gold px-1.5 py-0.5 font-mono text-[10px] text-ink">
+                        {unread}
+                      </span>
+                    ) : null}
+                  </NavLink>
+                ) : null}
+              </HideDuringOnboarding>
 
               <div className="ml-2">
                 <UserButton />
