@@ -1,5 +1,5 @@
 import Link from 'next/link'
-import { CoachCard } from '@/components/coach-card'
+import { CoachAvatar, CoachCard } from '@/components/coach-card'
 import { Button } from '@/components/ui/button'
 import { getDbUser } from '@/lib/auth/ensure-user'
 import { browseCoaches, listIndustries, rosterEmployers } from '@/lib/browse'
@@ -11,10 +11,10 @@ import { TRUST_BLOCK_BODY, TRUST_BLOCK_TITLE } from '@/lib/policy-copy'
  * SECTION RHYTHM. Tones alternate the whole way down so the page has a pulse as you
  * scroll, rather than reading as one flat template:
  *
- *   hero          paper       centered type, no art
- *   how it works  INK         full-bleed
+ *   hero          INK         full-bleed, centered type + roster proof
+ *   how it works  sand        recessed band, raised cards
  *   coaches       paper       + raised cards
- *   coach CTA     INK         full-bleed, the anchor contrast moment
+ *   coach CTA     INK         full-bleed
  *   trust         sand-deep
  *   footer        ink
  *
@@ -25,10 +25,13 @@ import { TRUST_BLOCK_BODY, TRUST_BLOCK_TITLE } from '@/lib/policy-copy'
  *
  * Depth comes from those blocks, not shadows (§1).
  *
- * WHY THE HERO IS CENTERED TYPE AND NOT TEXT-LEFT/CARD-RIGHT: the old split hero, over
- * a warm ground, under a serif headline with one accent-colored phrase, was the same
- * composition as the rest of this category. The differentiation is the whole point —
- * see the note at the top of globals.css before restoring a two-column hero.
+ * TWO THINGS NOT TO UNDO:
+ *  - The hero is CENTERED TYPE, not text-left/card-right. That split, over a warm
+ *    ground, under a serif headline carrying one accent-colored phrase, is the shared
+ *    composition of this whole category — see the note at the top of globals.css.
+ *  - The hero is INK. Putting it on the near-white ground was tried and looked like an
+ *    unstyled draft: with the navy and gold below the fold there was no brand color
+ *    above it at all.
  */
 export default async function Home() {
   const user = await getDbUser()
@@ -44,46 +47,84 @@ export default async function Home() {
   return (
     <main className="editorial flex-1">
       {/* ---------------------------------------------------------------- HERO */}
-      <section className="border-b border-line/10">
-        <div className="mx-auto w-full max-w-4xl px-6 pt-28 pb-24 text-center">
-          <p className="eyebrow">Career coaching, honestly</p>
+      {/*
+       * The hero IS the ink block. An earlier pass put the headline on the near-white
+       * ground with the ink and gold pushed below the fold, and it read as an unstyled
+       * draft: three neutrals, no brand color, nothing anchoring a very tall section.
+       * Differentiating from the category by SUBTRACTION produced blandness. The brand
+       * is a deep navy with a gold accent — so lead with it.
+       */}
+      <section className="relative overflow-hidden bg-ink text-paper">
+        {/* Two offset washes, not one: a single centered glow reads as a gradient
+            preset. Offsetting them gives the flat navy a direction of light. */}
+        <div
+          aria-hidden
+          className="pointer-events-none absolute -top-48 right-[-10%] size-[42rem] rounded-full opacity-25 blur-3xl"
+          style={{ background: 'radial-gradient(circle, var(--gold), transparent 70%)' }}
+        />
+        <div
+          aria-hidden
+          className="pointer-events-none absolute bottom-[-20rem] left-[-10%] size-[38rem] rounded-full opacity-40 blur-3xl"
+          style={{ background: 'radial-gradient(circle, var(--line), transparent 70%)' }}
+        />
+
+        <div className="relative mx-auto w-full max-w-4xl px-6 pt-24 pb-20 text-center">
+          <p className="eyebrow text-gold">Career coaching, honestly</p>
 
           {/*
-           * One color, no accent phrase. The emphasis comes from scale and tracking
-           * instead — a colored word inside a display headline is the device this whole
-           * category leans on, so it is deliberately absent.
+           * No accent-colored phrase inside the headline — that device is the category's
+           * signature. The contrast does the work here instead.
            */}
-          <h1 className="text-hero mx-auto mt-6 max-w-3xl text-balance">
+          <h1 className="text-hero mx-auto mt-6 max-w-4xl text-balance text-paper">
             Reach the people who&rsquo;ve been there.
           </h1>
 
-          <p className="mx-auto mt-8 max-w-xl text-lg leading-relaxed text-slate">
+          <p className="mx-auto mt-7 max-w-xl text-lg leading-relaxed text-paper/70">
             Book time with people who already have the job you want. No mentorship theater
             and no generic advice. Just a real conversation with someone who did the thing
             you&rsquo;re trying to do.
           </p>
 
-          <div className="mt-10 flex flex-wrap justify-center gap-3">
-            <Button asChild size="lg">
+          <div className="mt-9 flex flex-wrap justify-center gap-3">
+            <Button asChild size="lg" className="bg-gold text-ink hover:bg-gold/90">
               <Link href={ctaHref}>{user ? 'Go to your dashboard' : 'Find a coach'}</Link>
             </Button>
             {!user ? (
-              <Button asChild size="lg" variant="outline">
+              <Button
+                asChild
+                size="lg"
+                variant="outline"
+                className="border-paper/25 bg-transparent text-paper hover:bg-paper/10 hover:text-paper"
+              >
                 <Link href="/coaches/apply">Coach on MentorReach</Link>
               </Button>
             ) : null}
           </div>
 
-          {industries.length > 0 ? (
-            <div className="mt-14">
-              <p className="eyebrow">Coaching across</p>
-              <div className="mt-3 flex flex-wrap justify-center gap-x-5 gap-y-1.5">
-                {industries.slice(0, 7).map((i) => (
-                  <span key={i} className="text-sm text-slate">
-                    {i}
-                  </span>
+          {/*
+           * Proof, above the fold, from the live roster — real faces and real employers
+           * rather than a claim. Both are roster-derived: if the roster empties, this
+           * renders nothing instead of becoming a lie.
+           */}
+          {featured.length > 0 ? (
+            <div className="mt-14 flex flex-col items-center gap-4 border-t border-paper/10 pt-8">
+              <div className="flex -space-x-3">
+                {featured.slice(0, 5).map((c) => (
+                  <CoachAvatar
+                    key={c.userId}
+                    coach={c}
+                    size={40}
+                    className="ring-2 ring-ink"
+                  />
                 ))}
               </div>
+              {employers.length > 0 ? (
+                <p className="max-w-lg text-sm leading-relaxed text-paper/55">
+                  Hand-picked coaches from{' '}
+                  <span className="text-paper/80">{employers.slice(0, 5).join(', ')}</span>
+                  {employers.length > 5 ? ', and more.' : '.'}
+                </p>
+              ) : null}
             </div>
           ) : null}
         </div>
@@ -91,23 +132,30 @@ export default async function Home() {
 
       {/* -------------------------------------------------------- HOW IT WORKS */}
       {/*
-       * Pulled out of the old hero card into its own full-bleed ink band. It carries the
-       * contrast the hero used to get from the side panel, without the split composition
-       * — and without the placeholder stock photo that used to sit above it.
+       * Recessed sand band with LIFTED cards. The previous version was three bare
+       * columns of text, which is where a lot of the "unfinished" read came from —
+       * stacked surfaces give the section a floor and a ceiling without a shadow (§1).
        */}
-      <section className="bg-ink text-paper">
+      <section className="border-y border-line/10 bg-sand">
         <div className="mx-auto w-full max-w-5xl px-6 py-20">
-          <p className="eyebrow text-center text-paper/50">How it works</p>
-          <ol className="mt-12 grid gap-10 sm:grid-cols-3">
+          <p className="eyebrow text-center">How it works</p>
+          <h2 className="text-section mt-3 text-center">Three steps, no theater</h2>
+
+          <ol className="mt-12 grid gap-5 sm:grid-cols-3">
             {[
               { n: '01', t: 'Tell us where you’re headed', d: 'A short survey covering your year, your field, and what you need.' },
               { n: '02', t: 'Pick someone who’s been there', d: 'Pick someone who’s actually done the thing you’re aiming for.' },
               { n: '03', t: 'Book, pay, and talk', d: 'Pay securely, pick a time. Free cancellation up to 24 hours before.' },
             ].map((s) => (
-              <li key={s.n} className="border-t border-paper/15 pt-5">
-                <span className="font-mono text-xs text-gold">{s.n}</span>
-                <h3 className="mt-3 text-xl leading-snug text-paper">{s.t}</h3>
-                <p className="mt-2 text-sm leading-relaxed text-paper/60">{s.d}</p>
+              <li
+                key={s.n}
+                className="rounded-xl border border-line/15 bg-raised p-6 text-center"
+              >
+                <span className="mx-auto flex size-9 items-center justify-center rounded-full bg-ink font-mono text-xs text-gold">
+                  {s.n}
+                </span>
+                <h3 className="mt-4 text-lg leading-snug">{s.t}</h3>
+                <p className="mt-2 text-sm leading-relaxed text-slate">{s.d}</p>
               </li>
             ))}
           </ol>
@@ -125,15 +173,16 @@ export default async function Home() {
 
           {/*
            * Roster-derived, never hardcoded: a fixed list becomes a false claim the moment
-           * a coach leaves. If the roster empties, this renders nothing.
+           * a coach leaves. If the roster empties, this renders nothing. (The employer
+           * list is the same idea, but it now sits in the hero as above-the-fold proof.)
            */}
-          {employers.length > 0 ? (
+          {industries.length > 0 ? (
             <div className="mt-9 border-y border-line/15 py-5">
-              <p className="eyebrow">Coaches from</p>
+              <p className="eyebrow">Coaching across</p>
               <div className="mt-3 flex flex-wrap justify-center gap-x-6 gap-y-2">
-                {employers.map((e) => (
-                  <span key={e} className="font-display text-base text-ink/70">
-                    {e}
+                {industries.slice(0, 7).map((i) => (
+                  <span key={i} className="font-display text-base text-ink/70">
+                    {i}
                   </span>
                 ))}
               </div>
