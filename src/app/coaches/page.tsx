@@ -45,7 +45,7 @@ export default async function CoachesPage({
   ])
 
   return (
-    <main className="mx-auto w-full max-w-5xl flex-1 px-6 py-14">
+    <main className="mx-auto w-full max-w-7xl flex-1 px-6 py-14">
       <div className="text-center">
         <p className="label-mono">Coaches</p>
         <h1 className="mt-3 text-4xl">Find someone who&rsquo;s done it</h1>

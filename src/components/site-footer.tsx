@@ -7,7 +7,7 @@ import Link from 'next/link'
 export function SiteFooter() {
   return (
     <footer className="mt-auto bg-ink text-paper">
-      <div className="mx-auto flex w-full max-w-5xl flex-wrap items-start justify-between gap-8 px-6 py-12">
+      <div className="mx-auto flex w-full max-w-7xl flex-wrap items-start justify-between gap-8 px-6 py-12">
         <div>
           <p className="font-display text-xl">MentorReach</p>
           <p className="mt-1.5 text-sm text-paper/60">Reach the people who&rsquo;ve been there.</p>
@@ -40,7 +40,7 @@ export function SiteFooter() {
       </div>
 
       <div className="border-t border-paper/10">
-        <div className="mx-auto w-full max-w-5xl px-6 py-5">
+        <div className="mx-auto w-full max-w-7xl px-6 py-5">
           <p className="text-xs text-paper/40">
             © {new Date().getFullYear()} MentorReach
           </p>

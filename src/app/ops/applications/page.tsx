@@ -27,7 +27,7 @@ export default async function ApplicationsPage() {
   const decided = apps.filter((a) => a.status === 'accepted' || a.status === 'rejected')
 
   return (
-    <main className="mx-auto w-full max-w-5xl px-6 py-10">
+    <main className="mx-auto w-full max-w-7xl px-6 py-10">
       <ConsoleHeader
         title="Coach applications"
         description="Review applicants and accept them into setup, or decline."

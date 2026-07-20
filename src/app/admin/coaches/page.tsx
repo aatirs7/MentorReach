@@ -80,7 +80,7 @@ export default async function AdminCoachesPage() {
   const incomplete = rows.filter((r) => !r.live && r.profile.status !== 'suspended')
 
   return (
-    <main className="mx-auto w-full max-w-5xl px-6 py-10">
+    <main className="mx-auto w-full max-w-7xl px-6 py-10">
       <ConsoleHeader title="Coaches" description="Coaches go live automatically when their checklist is complete. You can suspend anyone for safety." />
 
       <div className="mt-8">

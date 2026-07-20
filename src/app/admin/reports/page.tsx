@@ -29,7 +29,7 @@ export default async function AdminReportsPage() {
   const closed = rows.filter((r) => r.status !== 'open')
 
   return (
-    <main className="mx-auto w-full max-w-5xl px-6 py-10">
+    <main className="mx-auto w-full max-w-7xl px-6 py-10">
       <ConsoleHeader title="Reports" />
 
       <section className="mt-10">

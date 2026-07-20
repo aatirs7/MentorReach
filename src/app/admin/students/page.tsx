@@ -28,7 +28,7 @@ export default async function AdminStudentsPage() {
   const surveyByUser = new Map(surveys.map((s) => [s.userId, s]))
 
   return (
-    <main className="mx-auto w-full max-w-5xl px-6 py-10">
+    <main className="mx-auto w-full max-w-7xl px-6 py-10">
       <ConsoleHeader title="Students" description="Everyone who signed up as a student, and where they are with the onboarding survey." />
 
       {students.length === 0 ? (

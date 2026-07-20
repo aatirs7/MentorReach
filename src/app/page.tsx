@@ -47,7 +47,13 @@ export default async function Home() {
           style={{ background: 'radial-gradient(circle, var(--gold), transparent 70%)' }}
         />
 
-        <div className="relative mx-auto grid w-full max-w-5xl gap-14 px-6 pt-24 pb-24 lg:grid-cols-[1.1fr_1fr] lg:items-center">
+        {/*
+         * The headline column takes the larger share (1.25fr). At the old 1.1fr inside a
+         * max-w-5xl shell the measure was ~560px, which broke "Reach the people who've
+         * been there." across four lines and made the hero read as squashed. The panel
+         * beside it doesn't need the extra room; the display type does.
+         */}
+        <div className="relative mx-auto grid w-full max-w-7xl gap-14 px-6 pt-24 pb-24 lg:grid-cols-[1.25fr_1fr] lg:items-center">
           <div>
             {/*
              * No leading rule before the label. A short dash butted against a mono
@@ -138,7 +144,7 @@ export default async function Home() {
 
       {/* ----------------------------------------------------------- COACHES */}
       {featured.length > 0 ? (
-        <section className="mx-auto w-full max-w-5xl px-6 py-24 text-center">
+        <section className="mx-auto w-full max-w-7xl px-6 py-24 text-center">
           <p className="label-mono">Our coaches</p>
           <h2 className="text-section mt-2">People who&rsquo;ve done it</h2>
           <p className="mx-auto mt-4 max-w-md text-slate">
@@ -199,7 +205,7 @@ export default async function Home() {
 
       {/* --------------------------------------------------------- TRUST BAND */}
       <section className="border-b border-line/15 bg-sand-deep">
-        <div className="mx-auto grid w-full max-w-5xl gap-10 px-6 py-20 text-center sm:grid-cols-3">
+        <div className="mx-auto grid w-full max-w-7xl gap-10 px-6 py-20 text-center sm:grid-cols-3">
           {[
             { t: 'Hand-picked', d: 'We personally review every coach before they join.' },
             { t: 'Paid on-platform', d: 'Payment runs through Stripe. No off-platform arrangements, and no chasing anyone for an invoice.' },

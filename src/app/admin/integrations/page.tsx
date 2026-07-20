@@ -73,7 +73,7 @@ export default async function IntegrationsPage() {
   const ready = bookingEnabled() && s.stripeWebhook
 
   return (
-    <main className="mx-auto w-full max-w-5xl px-6 py-10">
+    <main className="mx-auto w-full max-w-7xl px-6 py-10">
       <ConsoleHeader
         title="Integrations"
         description="Everything here degrades quietly when unconfigured, so the app runs before the accounts exist. That's useful in development and hazardous at launch, so this page is the check."

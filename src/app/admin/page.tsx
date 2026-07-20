@@ -45,7 +45,7 @@ export default async function AdminHome() {
   const signed = profiles.filter((p) => p.handbookAckAt).length
 
   return (
-    <main className="mx-auto w-full max-w-5xl px-6 py-10">
+    <main className="mx-auto w-full max-w-7xl px-6 py-10">
       <ConsoleHeader title="Dashboard" description="The state of the business at a glance." />
 
       {!bookingEnabled() ? (

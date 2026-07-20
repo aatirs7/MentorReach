@@ -43,7 +43,7 @@ export async function SiteHeader() {
 
   return (
     <header className="border-b border-line/15">
-      <div className="mx-auto flex w-full max-w-5xl items-center justify-between px-6 py-4">
+      <div className="mx-auto flex w-full max-w-7xl items-center justify-between px-6 py-4">
         <Link href="/" aria-label="MentorReach home" className="flex items-center">
           {/* Transparent PNG logo lockup; sits on the ivory header. next/image resizes the
               1024px source down to the served size. */}
