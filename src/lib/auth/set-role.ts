@@ -3,6 +3,7 @@
 import { auth, clerkClient } from '@clerk/nextjs/server'
 import { eq } from 'drizzle-orm'
 import { db } from '@/db'
+import { recordAcceptance } from '@/lib/legal-acceptance'
 import { users } from '@/db/schema'
 import type { Role } from '@/types/globals'
 
@@ -67,7 +68,38 @@ export async function setRole(role: Role): Promise<{ ok: true } | { ok: false; e
    * IS that rule: Clerk is written above, and this write is downstream of it. The
    * webhook arriving later is idempotent, since it writes the same value.
    */
-  await db.update(users).set({ role }).where(eq(users.clerkId, userId))
+  const [mirrored] = await db
+    .update(users)
+    .set({ role })
+    .where(eq(users.clerkId, userId))
+    .returning({ id: users.id })
+
+  /**
+   * 3. Record acceptance of the Terms and Privacy Policy.
+   *
+   * The checkbox on the role page is where every account — student and mentor alike —
+   * agrees to these two, so this is the one place both paths pass through. Mentors accept
+   * the Agreement and Handbook separately, with a typed signature, at /mentor/agreement.
+   *
+   * Written AFTER the role is set rather than before: an acceptance row for an account
+   * whose setup then failed would be a record of consent that never took effect. Two rows,
+   * because the documents version independently.
+   *
+   * Deliberately not fatal. The role is already committed in both Clerk and Neon by this
+   * point, so throwing here would strand the user in a state where their role is set but
+   * the page reports failure — and clicking again returns "Role is already set."
+   */
+  if (mirrored) {
+    try {
+      await recordAcceptance({
+        userId: mirrored.id,
+        keys: ['terms', 'privacy'],
+        method: 'checkbox',
+      })
+    } catch (err) {
+      console.error('[set-role] could not record terms/privacy acceptance', err)
+    }
+  }
 
   return { ok: true }
 }

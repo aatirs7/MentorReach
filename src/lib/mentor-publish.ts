@@ -1,13 +1,6 @@
 import { isPlaceholderImage } from './headshot'
 
 /**
- * The current Mentor Handbook / agreement version. Bump when the handbook materially
- * changes and you want mentors to re-sign; stored on each signature so admin can see
- * which version a mentor agreed to.
- */
-export const AGREEMENT_VERSION = '2026-07'
-
-/**
  * Mentor publish model (self-serve, no approval gate).
  *
  * A real mentor's profile publishes itself the moment the checklist below is complete —
@@ -31,7 +24,19 @@ export type MentorPublishInput = {
   /** True when the mentor has set at least one native availability rule (§9 scheduler). */
   hasAvailability: boolean
   stripePayoutsEnabled: boolean
-  handbookAckAt: Date | null
+  /**
+   * A signed Mentor Agreement at the CURRENT version.
+   *
+   * A boolean rather than a timestamp, and current-version rather than ever-signed, so a
+   * version bump automatically unpublishes everyone who has only signed the old one.
+   * That is the intended behaviour: the profile is live on the strength of an agreement,
+   * and if the agreement changed, the basis for being live changed with it. Profile data
+   * is untouched — they re-sign and go straight back up.
+   *
+   * Replaces the old `handbookAckAt`, which recorded only that something was acknowledged
+   * at some point, with no record of what it said.
+   */
+  agreementSigned: boolean
 }
 
 /**
@@ -55,7 +60,7 @@ export type ChecklistItemKey =
   | 'offering'
   | 'calendar'
   | 'payouts'
-  | 'handbook'
+  | 'agreement'
 
 export type ChecklistItem = {
   key: ChecklistItemKey
@@ -73,7 +78,7 @@ export function mentorChecklist(input: MentorPublishInput): ChecklistItem[] {
     { key: 'offering', label: 'Set at least one session length and price', done: input.hasActiveOffering },
     { key: 'calendar', label: 'Set your availability', done: input.hasAvailability },
     { key: 'payouts', label: 'Set up payouts with Stripe', done: input.stripePayoutsEnabled },
-    { key: 'handbook', label: 'Read and agree to the Mentor Handbook', done: Boolean(input.handbookAckAt) },
+    { key: 'agreement', label: 'Sign the Mentor Agreement', done: input.agreementSigned },
   ]
 }
 

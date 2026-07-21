@@ -43,8 +43,13 @@ export function RolePicker() {
   const [pending, startTransition] = useTransition()
   const [error, setError] = useState<string | null>(null)
   const [chosen, setChosen] = useState<Role | null>(null)
+  const [accepted, setAccepted] = useState(false)
 
   function choose(role: Extract<Role, 'student' | 'mentor'>) {
+    if (!accepted) {
+      setError('Please agree to the Terms of Service and Privacy Policy first.')
+      return
+    }
     setError(null)
     setChosen(role)
 
@@ -65,6 +70,45 @@ export function RolePicker() {
 
   return (
     <div className="mt-9">
+      {/*
+       * Above the cards on purpose: this is a precondition, not an afterthought. Both
+       * links open in a new tab so reading them never discards the choice in progress.
+       * setRole() writes the acceptance rows server-side — this checkbox gates the click,
+       * it does not create the record.
+       */}
+      <label className="mx-auto mb-6 flex max-w-xl cursor-pointer items-start gap-3 rounded-xl border border-line/20 bg-raised p-4">
+        <input
+          type="checkbox"
+          checked={accepted}
+          onChange={(e) => {
+            setAccepted(e.target.checked)
+            if (e.target.checked) setError(null)
+          }}
+          className="mt-0.5 size-4 shrink-0 accent-gold"
+        />
+        <span className="text-sm leading-relaxed text-slate">
+          I agree to the{' '}
+          <a
+            href="/legal/terms"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-ink underline decoration-gold underline-offset-4"
+          >
+            Terms of Service
+          </a>{' '}
+          and{' '}
+          <a
+            href="/legal/privacy"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-ink underline decoration-gold underline-offset-4"
+          >
+            Privacy Policy
+          </a>
+          .
+        </span>
+      </label>
+
       {/*
        * Uneven columns on desktop so the primary card is physically larger, not just
        * darker. items-stretch keeps both CTAs on the same baseline despite the blurbs
@@ -106,7 +150,7 @@ export function RolePicker() {
                   type="button"
                   size="lg"
                   variant={primary ? 'default' : 'outline'}
-                  disabled={pending}
+                  disabled={pending || !accepted}
                   onClick={() => choose(c.role)}
                   className={
                     primary

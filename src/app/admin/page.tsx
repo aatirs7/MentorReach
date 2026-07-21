@@ -6,6 +6,7 @@ import { mentorAvailabilityRules, mentorOfferings, reports, users } from '@/db/s
 import { requireAdmin } from '@/lib/auth/guards'
 import { ConsoleHeader } from '@/components/console-shell'
 import { platformStats } from '@/lib/admin-stats'
+import { signedCurrentAgreement } from '@/lib/legal-acceptance'
 import { isMentorLive } from '@/lib/mentor-publish'
 import { formatPrice } from '@/lib/mentor-schema'
 import { bookingEnabled } from '@/lib/env'
@@ -30,6 +31,7 @@ export default async function AdminHome() {
   // Live-mentor count via the same rule as browse. Offering + availability presence from sets.
   const mentorsWithOffering = new Set(activeOfferings.map((o) => o.mentorId))
   const mentorsWithAvailability = new Set(availabilityRules.map((r) => r.mentorId))
+  const signedIds = await signedCurrentAgreement(profiles.map((p) => p.userId))
   const liveMentors = profiles.filter((p) =>
     isMentorLive({
       isSeed: p.isSeed,
@@ -40,10 +42,10 @@ export default async function AdminHome() {
       hasActiveOffering: mentorsWithOffering.has(p.userId),
       hasAvailability: mentorsWithAvailability.has(p.userId),
       stripePayoutsEnabled: p.stripePayoutsEnabled,
-      handbookAckAt: p.handbookAckAt,
+      agreementSigned: signedIds.has(p.userId),
     }),
   ).length
-  const signed = profiles.filter((p) => p.handbookAckAt).length
+  const signed = profiles.filter((p) => signedIds.has(p.userId)).length
 
   return (
     <main className="mx-auto w-full max-w-7xl px-6 py-10">

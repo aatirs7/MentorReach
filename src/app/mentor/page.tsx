@@ -7,6 +7,7 @@ import { Card } from '@/components/ui/card'
 import { db } from '@/db'
 import { mentorOfferings } from '@/db/schema'
 import { requireMentor } from '@/lib/auth/guards'
+import { hasCurrentAcceptance } from '@/lib/legal-acceptance'
 import { type ChecklistItemKey, mentorChecklist, isMentorLive } from '@/lib/mentor-publish'
 import { formatPrice } from '@/lib/mentor-schema'
 import { MENTOR_SOURCED_BPS, PLATFORM_SOURCED_BPS } from '@/lib/commission'
@@ -45,7 +46,7 @@ export default async function MentorHome() {
     hasActiveOffering: active.length > 0,
     hasAvailability,
     stripePayoutsEnabled: profile.stripePayoutsEnabled,
-    handbookAckAt: profile.handbookAckAt,
+    agreementSigned: await hasCurrentAcceptance(user.id, 'mentor_agreement'),
   }
 
   const checklist = mentorChecklist(publishInput)
@@ -155,7 +156,7 @@ function StepAction({ stepKey }: { stepKey: ChecklistItemKey }) {
     offering: { href: '/mentor/setup', label: 'Add' },
     calendar: { href: '/mentor/availability', label: 'Set hours' },
     payouts: { href: '/mentor/payouts', label: 'Set up' },
-    handbook: { href: '/mentor/setup', label: 'Review' },
+    agreement: { href: '/mentor/agreement', label: 'Sign' },
   }
 
   const t = target[stepKey]

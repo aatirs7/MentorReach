@@ -1,7 +1,15 @@
 import 'server-only'
 import { and, asc, eq, gte, inArray, isNotNull, lte, ne, or, sql, type SQL } from 'drizzle-orm'
 import { db } from '@/db'
-import { mentorAvailabilityRules, mentorOfferings, mentorProfiles, users } from '@/db/schema'
+import {
+  legalAcceptances,
+  mentorAvailabilityRules,
+  mentorOfferings,
+  mentorProfiles,
+  users,
+} from '@/db/schema'
+import { getDocument } from './legal'
+import { hasCurrentAcceptance } from './legal-acceptance'
 import { isMentorLive } from './mentor-publish'
 import { mentorHasAvailability } from './scheduling'
 
@@ -41,11 +49,31 @@ export type BrowseFilters = {
 function liveMentorSql(): SQL {
   // A real mentor needs at least one native availability rule (§9 scheduler).
   const hasAvailability = sql`EXISTS (SELECT 1 FROM ${mentorAvailabilityRules} WHERE ${mentorAvailabilityRules.mentorId} = ${mentorProfiles.userId})`
+
+  /**
+   * A signed Mentor Agreement at the CURRENT version.
+   *
+   * The version is interpolated from the document registry rather than stored in the
+   * database, so bumping the file is the only action needed to unpublish everyone who
+   * hasn't re-signed — there is no second place to remember to update.
+   *
+   * This mirrors `agreementSigned` in mentor-publish.ts. The two must agree: if browse
+   * lists someone the checklist considers incomplete, a student can reach a profile that
+   * cannot take a booking.
+   */
+  const agreementVersion = getDocument('mentor_agreement').version
+  const hasSignedAgreement = sql`EXISTS (
+    SELECT 1 FROM ${legalAcceptances}
+    WHERE ${legalAcceptances.userId} = ${mentorProfiles.userId}
+      AND ${legalAcceptances.documentKey} = 'mentor_agreement'
+      AND ${legalAcceptances.documentVersion} = ${agreementVersion}
+  )`
+
   const realComplete = and(
     isNotNull(mentorProfiles.headshotUrl),
     hasAvailability,
     eq(mentorProfiles.stripePayoutsEnabled, true),
-    isNotNull(mentorProfiles.handbookAckAt),
+    hasSignedAgreement,
   )
   // biome-ignore lint: and()/or() are non-null here with fixed args.
   return and(ne(mentorProfiles.status, 'suspended'), or(eq(mentorProfiles.isSeed, true), realComplete))!
@@ -196,7 +224,7 @@ export async function getPublicMentor(userId: string) {
     hasActiveOffering: offerings.length > 0,
     hasAvailability: await mentorHasAvailability(userId),
     stripePayoutsEnabled: profile.stripePayoutsEnabled,
-    handbookAckAt: profile.handbookAckAt,
+    agreementSigned: await hasCurrentAcceptance(userId, 'mentor_agreement'),
   })
 
   if (!live) return null

@@ -111,6 +111,20 @@ Book button is disabled with an honest reason rather than failing at checkout.
 - Integer cents everywhere; `splitAmount()` derives payout as `amount − commission`
 - 24-hour cancellation policy; **we** decide refunds, not any external tool
 
+### Legal and consent
+- Five documents at `/legal/*`, public and indexable, versioned with a content hash
+- **Students and mentors** accept Terms + Privacy via a required checkbox at role
+  selection; `setRole()` writes both acceptance rows server-side
+- **Mentors** sign the Agreement and Handbook at `/mentor/agreement`, with the full text of
+  both rendered inline on the page where they sign — a typed legal name, not a checkbox
+  against a link
+- `legal_acceptances` is append-only and records version, content hash, IP and user agent.
+  Re-acceptance is a new row, never an update
+- **Publishing requires a current-version signature**, enforced in `isMentorLive()` and
+  mirrored in `liveMentorSql()` so browse and the checklist cannot disagree
+- `/admin/agreements` — the register: every acceptance, filterable by document, flagging
+  signatures made against an outdated version
+
 ### Internal
 - `/ops` — shared founder task board, two-level hierarchy (workstream → sub-task)
 - `/ops/overview` — per-founder dashboard: progress, completion timeline, open work.
@@ -167,12 +181,14 @@ the non-circumvention period in the Mentor Agreement all still need filling, and
 need an attorney's review before anyone signs. A dev-only banner lists the unresolved
 placeholders on each `/legal/*` page; it never renders in production.
 
-**Editing a legal document requires a version bump.** `src/lib/legal.test.ts` locks each
-document's SHA-256 to its version and fails if the text changes without one. The procedure:
-copy the current file to `src/content/legal/archive/<key>/<old-version>.md`, bump `version`
-in frontmatter, then update both the version and the hash in the lock table. Do not simply
-paste in the new hash — a signature records a version AND a hash, so changing text under a
-fixed version leaves every prior acceptance pointing at words nobody agreed to.
+**Editing a legal document requires a version bump.** Full procedure in
+[`legal-version-bumps.md`](legal-version-bumps.md). `src/lib/legal.test.ts` locks each
+document's SHA-256 to its version and fails if the text changes without one.
+
+**Fill the legal placeholders BEFORE the founding mentors sign.** A version bump
+unpublishes every mentor who signed the previous version — that is the intended behaviour
+of the publishing gate. Doing it before anyone has signed costs nothing; doing it after
+takes all nine offline until they re-sign.
 
 ---
 

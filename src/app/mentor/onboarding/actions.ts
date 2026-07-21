@@ -7,7 +7,7 @@ import { db } from '@/db'
 import { mentorProfiles } from '@/db/schema'
 import { requireUser, viewingAsMentor } from '@/lib/auth/guards'
 import { aboutStepSchema, parsePriceToCents, sessionsStepSchema } from '@/lib/mentor-schema'
-import { AGREEMENT_VERSION } from '@/lib/mentor-publish'
+import { hasCurrentAcceptance, recordAcceptance } from '@/lib/legal-acceptance'
 import { syncOfferings, uniqueReferralCode } from '@/lib/mentor-writes'
 
 export type OnboardingState = {
@@ -118,20 +118,29 @@ export async function saveHandbookStep(_prev: OnboardingState, formData: FormDat
 
   const existing = await db.query.mentorProfiles.findFirst({
     where: eq(mentorProfiles.userId, user.id),
-    columns: { id: true, handbookAckAt: true },
+    columns: { id: true },
   })
   if (!existing) return { message: 'Finish the earlier steps first.' }
 
-  // Sign once — re-visiting never overwrites the original consent.
-  if (!existing.handbookAckAt) {
-    await db
-      .update(mentorProfiles)
-      .set({
-        handbookAckAt: new Date(),
-        handbookSignedName: signedName.slice(0, 120),
-        handbookVersion: AGREEMENT_VERSION,
-      })
-      .where(eq(mentorProfiles.id, existing.id))
+  /**
+   * Signing now writes to `legal_acceptances`, not to columns on the profile.
+   *
+   * The old shape recorded a timestamp and a name but not WHAT was agreed to, so a later
+   * edit to the handbook silently changed the meaning of every existing acknowledgment.
+   * recordAcceptance() captures the version and a hash of the exact text.
+   *
+   * Idempotent by version: re-signing the same version is a duplicate row rather than a
+   * correction, so it is skipped. A NEW version is a new agreement and must be signed
+   * again — that is the whole reason the check is version-aware.
+   */
+  const alreadySigned = await hasCurrentAcceptance(user.id, 'mentor_agreement')
+  if (!alreadySigned) {
+    await recordAcceptance({
+      userId: user.id,
+      keys: ['mentor_agreement', 'mentor_handbook'],
+      method: 'typed_signature',
+      signatureName: signedName.slice(0, 120),
+    })
   }
 
   redirect('/mentor/onboarding?step=done')

@@ -12,7 +12,7 @@ const complete: MentorPublishInput = {
   hasActiveOffering: true,
   hasAvailability: true,
   stripePayoutsEnabled: true,
-  handbookAckAt: new Date(),
+  agreementSigned: true,
 }
 
 describe('isMentorLive — the self-serve publish gate', () => {
@@ -36,7 +36,7 @@ describe('isMentorLive — the self-serve publish gate', () => {
     assert.equal(isMentorLive({ ...complete, hasActiveOffering: false }), false)
     assert.equal(isMentorLive({ ...complete, hasAvailability: false }), false)
     assert.equal(isMentorLive({ ...complete, stripePayoutsEnabled: false }), false)
-    assert.equal(isMentorLive({ ...complete, handbookAckAt: null }), false)
+    assert.equal(isMentorLive({ ...complete, agreementSigned: false }), false)
     assert.equal(isMentorLive({ ...complete, bio: '' }), false)
     assert.equal(isMentorLive({ ...complete, currentTitle: '' }), false)
   })
@@ -52,7 +52,7 @@ describe('isMentorLive — the self-serve publish gate', () => {
       headshotUrl: 'https://i.pravatar.cc/400?u=seed',
       hasAvailability: false,
       stripePayoutsEnabled: false,
-      handbookAckAt: null,
+      agreementSigned: false,
     }
     assert.equal(isMentorLive(seed), true)
     assert.equal(isMentorLive({ ...seed, status: 'suspended' }), false)

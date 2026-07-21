@@ -12,6 +12,7 @@ const ITEMS = [
   { href: '/admin/mentors', label: 'Mentors' },
   { href: '/admin/students', label: 'Students' },
   { href: '/ops/applications', label: 'Applications' },
+  { href: '/admin/agreements', label: 'Agreements' },
   { href: '/admin/reports', label: 'Reports' },
   { href: '/admin/users', label: 'Accounts' },
   { href: '/admin/integrations', label: 'Integrations' },

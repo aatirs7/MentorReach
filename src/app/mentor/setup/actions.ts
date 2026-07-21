@@ -7,7 +7,6 @@ import { db } from '@/db'
 import { mentorProfiles } from '@/db/schema'
 import { requireUser, viewingAsMentor } from '@/lib/auth/guards'
 import { mentorProfileSchema, parsePriceToCents } from '@/lib/mentor-schema'
-import { AGREEMENT_VERSION } from '@/lib/mentor-publish'
 import { syncOfferings, uniqueReferralCode } from '@/lib/mentor-writes'
 import { UploadError, uploadHeadshot, uploadResume } from '@/lib/storage'
 
@@ -79,22 +78,14 @@ export async function saveMentorProfile(
     where: eq(mentorProfiles.userId, user.id),
   })
 
-  // Handbook agreement — required to publish. The mentor types their full legal name to
-  // sign; that captures the consent timestamp, the signed name, and the version once.
-  // Re-editing the form later never re-signs or overwrites the original signature
-  // (consent, like the booking policy ack), so it's reviewable in admin unchanged.
-  const signedNameRaw = String(formData.get('handbookSignedName') ?? '').trim()
-  const alreadySigned = Boolean(existing?.handbookAckAt)
-
-  const signature =
-    alreadySigned || !signedNameRaw
-      ? {}
-      : {
-          handbookAckAt: new Date(),
-          handbookSignedName: signedNameRaw.slice(0, 120),
-          handbookVersion: AGREEMENT_VERSION,
-        }
-
+  /**
+   * The signature no longer lives on this form.
+   *
+   * It moved to /mentor/agreement, where the full text of both documents is rendered on
+   * the same page as the signature field. Collecting it here meant signing a document the
+   * page never showed, which is precisely the weakness an electronic signature has to
+   * avoid. This form now only edits profile details.
+   */
   const displayEmployerGenerally = v.employerVisibility === 'describe_generally'
 
   const textValues = {
@@ -105,7 +96,6 @@ export async function saveMentorProfile(
     employerNote: v.employerNote || null,
     displayEmployerGenerally,
     generalTitle: displayEmployerGenerally ? v.generalTitle || null : null,
-    ...signature,
   }
 
   if (existing) {

@@ -10,6 +10,7 @@ import { db } from '@/db'
 import { mentorOfferings, mentorProfiles, users } from '@/db/schema'
 import { requireAdmin } from '@/lib/auth/guards'
 import { mentorStats } from '@/lib/admin-stats'
+import { acceptancesFor, hasCurrentAcceptance } from '@/lib/legal-acceptance'
 import { mentorChecklist, isMentorLive } from '@/lib/mentor-publish'
 import { formatPrice } from '@/lib/mentor-schema'
 import { mentorHasAvailability } from '@/lib/scheduling'
@@ -47,8 +48,11 @@ export default async function AdminMentorDetail({ params }: { params: Promise<{ 
     hasActiveOffering: offerings.length > 0,
     hasAvailability,
     stripePayoutsEnabled: profile.stripePayoutsEnabled,
-    handbookAckAt: profile.handbookAckAt,
+    agreementSigned: await hasCurrentAcceptance(id, 'mentor_agreement'),
   }
+  // Full signature record, so admin can see who signed what and when.
+  const signatures = await acceptancesFor(id, ['mentor_agreement', 'mentor_handbook'])
+  const agreementRecord = signatures.get('mentor_agreement')
   const live = isMentorLive(publishInput)
   const suspended = profile.status === 'suspended'
   const checklist = mentorChecklist(publishInput)
@@ -84,21 +88,37 @@ export default async function AdminMentorDetail({ params }: { params: Promise<{ 
       {/* Agreement review */}
       <Card className="mt-8 border-line/20 p-6">
         <p className="label-mono">Mentor agreement</p>
-        {profile.handbookAckAt ? (
+        {agreementRecord ? (
           <div className="mt-3 space-y-1 text-sm">
             <p>
               Signed by{' '}
-              <span className="font-medium text-ink">{profile.handbookSignedName ?? '—'}</span>
+              <span className="font-medium text-ink">{agreementRecord.signatureName ?? '—'}</span>
             </p>
             <p className="text-slate">
-              {profile.handbookAckAt.toLocaleString('en-US', { dateStyle: 'long', timeStyle: 'short' })}
-              {profile.handbookVersion ? ` · handbook ${profile.handbookVersion}` : ''}
+              {agreementRecord.acceptedAt.toLocaleString('en-US', {
+                dateStyle: 'long',
+                timeStyle: 'short',
+              })}{' '}
+              · version {agreementRecord.documentVersion} · {agreementRecord.method}
             </p>
+            {/*
+             * The content hash is what makes this a record of WHAT was agreed to rather
+             * than merely that something was. Shown truncated; the full value is in the
+             * export.
+             */}
+            <p className="pt-1 font-mono text-[11px] break-all text-slate">
+              {agreementRecord.contentHash.slice(0, 40)}…
+            </p>
+            {!publishInput.agreementSigned ? (
+              <p className="pt-1 text-destructive">
+                This is an older version. They are unpublished until they re-sign.
+              </p>
+            ) : null}
             <Link
-              href="/mentor/handbook"
+              href="/legal/mentor-agreement"
               className="inline-block pt-1 text-slate underline decoration-gold underline-offset-4 hover:text-ink"
             >
-              View the handbook they agreed to
+              View the agreement
             </Link>
           </div>
         ) : (

@@ -9,6 +9,7 @@ import { db } from '@/db'
 import { mentorAvailabilityRules, mentorInvites, mentorOfferings, mentorProfiles, users } from '@/db/schema'
 import { requireAdmin } from '@/lib/auth/guards'
 import { inviteUrl } from '@/lib/mentor-invite'
+import { signedCurrentAgreement } from '@/lib/legal-acceptance'
 import { mentorChecklist, isMentorLive } from '@/lib/mentor-publish'
 import { formatPrice } from '@/lib/mentor-schema'
 import { NO_INDEX } from '@/lib/seo'
@@ -52,6 +53,9 @@ export default async function AdminMentorsPage() {
     orderBy: [desc(mentorInvites.createdAt)],
   })
 
+  // One query for the whole roster rather than one per row.
+  const signedIds = await signedCurrentAgreement(profiles.map((p) => p.userId))
+
   const rows = profiles.map((p) => {
     const mentorOff = offerings.filter((o) => o.mentorId === p.userId && o.isActive)
     const hasAvailability = hasAvailabilityByMentor.has(p.userId)
@@ -64,13 +68,14 @@ export default async function AdminMentorsPage() {
       hasActiveOffering: mentorOff.length > 0,
       hasAvailability,
       stripePayoutsEnabled: p.stripePayoutsEnabled,
-      handbookAckAt: p.handbookAckAt,
+      agreementSigned: signedIds.has(p.userId),
     }
     return {
       profile: p,
       user: userById.get(p.userId),
       offerings: mentorOff,
       hasAvailability,
+      agreementSigned: publishInput.agreementSigned,
       live: isMentorLive(publishInput),
       remaining: mentorChecklist(publishInput).filter((c) => !c.done),
     }
@@ -108,6 +113,8 @@ type Row = {
   user?: typeof users.$inferSelect
   offerings: Array<typeof mentorOfferings.$inferSelect>
   hasAvailability: boolean
+  /** Signed the CURRENT Mentor Agreement — an old-version signature does not count. */
+  agreementSigned: boolean
   live: boolean
   remaining: Array<{ label: string }>
 }
@@ -131,7 +138,7 @@ function Section({ title, rows, empty }: { title: string; rows: Row[]; empty: st
   )
 }
 
-function MentorRow({ profile, user, offerings, hasAvailability, live, remaining }: Row) {
+function MentorRow({ profile, user, offerings, hasAvailability, agreementSigned, live, remaining }: Row) {
   const suspended = profile.status === 'suspended'
 
   return (
@@ -197,7 +204,7 @@ function MentorRow({ profile, user, offerings, hasAvailability, live, remaining 
         <span>Photo: {profile.headshotUrl ? 'yes' : 'no'}</span>
         <span>Stripe payouts: {profile.stripePayoutsEnabled ? 'ready' : 'no'}</span>
         <span>Availability: {hasAvailability ? 'set' : 'no'}</span>
-        <span>Agreement: {profile.handbookAckAt ? 'signed' : 'not signed'}</span>
+        <span>Agreement: {agreementSigned ? 'signed' : 'not signed'}</span>
         <Link
           href={`/admin/mentors/${profile.userId}`}
           className="ml-auto text-sm text-slate underline decoration-gold underline-offset-4 hover:text-ink"
