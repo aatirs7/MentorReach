@@ -7,6 +7,7 @@ import { db } from '@/db'
 import { legalAcceptances, users } from '@/db/schema'
 import { requireAdmin } from '@/lib/auth/guards'
 import { LEGAL_KEYS, getDocument, isLegalKey } from '@/lib/legal'
+import { usersMissingConsent } from '@/lib/legal-acceptance'
 import { NO_INDEX } from '@/lib/seo'
 
 export const metadata = { title: 'Agreements', ...NO_INDEX }
@@ -28,6 +29,8 @@ export default async function AdminAgreementsPage({
   const { doc, stale } = await searchParams
   const filterKey = isLegalKey(doc) ? doc : null
   const staleOnly = stale === '1'
+
+  const gaps = await usersMissingConsent()
 
   const rows = await db
     .select({
@@ -58,6 +61,58 @@ export default async function AdminAgreementsPage({
         title="Agreements"
         description="Every acceptance and signature on record. Append-only — nothing here can be edited or removed."
       />
+
+      {/*
+       * The consent gap.
+       *
+       * Recording terms/privacy acceptance is non-fatal in setRole(), so a failed write
+       * leaves an account with a role and no consent record — the exact thing this table
+       * exists to prevent. Without this panel that failure is invisible: nothing in the
+       * product looks wrong, and the only trace is a log line nobody is watching.
+       *
+       * Deliberately shown even at zero, so "no gaps" is a positive statement rather than
+       * an absence you have to infer.
+       */}
+      <div className="mt-8">
+        {gaps.length > 0 ? (
+          <Card className="border-destructive/40 bg-destructive/5 p-6">
+            <p className="label-mono text-destructive">
+              {gaps.length} account{gaps.length === 1 ? '' : 's'} with no consent on record
+            </p>
+            <p className="mt-3 max-w-prose text-sm leading-relaxed">
+              These accounts have a role but no Terms or Privacy acceptance. That means the
+              write failed after their role was committed — search the logs for{' '}
+              <code className="font-mono text-xs">LEGAL-CONSENT-GAP</code>.
+            </p>
+            <p className="mt-2 max-w-prose text-sm leading-relaxed text-slate">
+              Ask them to accept again rather than inserting a row on their behalf. We know
+              the write failed; we don&rsquo;t know they ticked the box, and a consent record
+              we can&rsquo;t evidence makes every other row here less trustworthy.
+            </p>
+            <ul className="mt-4 space-y-2">
+              {gaps.map((g) => (
+                <li key={g.userId} className="flex flex-wrap items-baseline gap-x-3 text-sm">
+                  <span className="text-ink">{g.fullName ?? 'Unnamed'}</span>
+                  <span className="text-slate">{g.email}</span>
+                  <span className="font-mono text-[10px] tracking-wide text-slate uppercase">
+                    {g.role}
+                  </span>
+                  <span className="font-mono text-[10px] tracking-wide text-destructive uppercase">
+                    missing: {g.missing.join(', ')}
+                  </span>
+                  <span className="ml-auto font-mono text-[11px] text-slate tabular-nums">
+                    joined {g.createdAt.toLocaleDateString('en-US', { dateStyle: 'medium' })}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          </Card>
+        ) : (
+          <p className="text-center text-xs text-slate">
+            Every account with a role has a Terms and Privacy acceptance on record.
+          </p>
+        )}
+      </div>
 
       <div className="mt-8 flex flex-wrap items-center justify-center gap-2">
         <FilterChip href="/admin/agreements" active={!filterKey && !staleOnly}>

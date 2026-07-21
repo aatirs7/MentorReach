@@ -2,7 +2,7 @@ import 'server-only'
 import { and, desc, eq, inArray } from 'drizzle-orm'
 import { headers } from 'next/headers'
 import { db } from '@/db'
-import { legalAcceptances } from '@/db/schema'
+import { legalAcceptances, users } from '@/db/schema'
 import { type LegalKey, getDocument } from './legal'
 
 // Signature validation is shared with the client form — see legal-acceptance-shared.ts.
@@ -112,6 +112,80 @@ export async function hasCurrentAcceptance(userId: string, key: LegalKey): Promi
     .limit(1)
 
   return rows.length > 0
+}
+
+export type ConsentGap = {
+  userId: string
+  fullName: string | null
+  email: string
+  role: string
+  createdAt: Date
+  /** Which of terms/privacy are missing — usually both, since they are written together. */
+  missing: string[]
+}
+
+/**
+ * Accounts that have a role but no record of accepting the Terms or Privacy Policy.
+ *
+ * This exists because recording that acceptance is deliberately non-fatal in setRole():
+ * the role is already committed in Clerk and Neon by that point, and throwing would strand
+ * someone in a state where retrying returns "Role is already set." The cost of that choice
+ * is that a failed write leaves exactly the gap this table was built to prevent — so it has
+ * to be findable rather than merely logged and forgotten.
+ *
+ * Checks for ANY acceptance of each document, not the current version. A stale acceptance
+ * is a different problem (visible as "out of date" in /admin/agreements); this one is the
+ * absence of any record at all.
+ *
+ * NOTE ON REMEDIATION: the fix is to ask the person to accept again, not to insert a row
+ * on their behalf. We know the write failed; we do not know they ticked the box. Writing a
+ * consent record we cannot evidence is worse than having none, because it makes every
+ * other row in the table less trustworthy.
+ */
+export async function usersMissingConsent(): Promise<ConsentGap[]> {
+  const REQUIRED: LegalKey[] = ['terms', 'privacy']
+
+  const rows = await db
+    .select({
+      userId: users.id,
+      fullName: users.fullName,
+      email: users.email,
+      role: users.role,
+      createdAt: users.createdAt,
+      documentKey: legalAcceptances.documentKey,
+    })
+    .from(users)
+    .leftJoin(
+      legalAcceptances,
+      and(
+        eq(legalAcceptances.userId, users.id),
+        inArray(legalAcceptances.documentKey, REQUIRED as string[]),
+      ),
+    )
+
+  // Collapse the join: one entry per user, with the set of documents they have accepted.
+  const seen = new Map<string, { row: (typeof rows)[number]; accepted: Set<string> }>()
+  for (const r of rows) {
+    const hit = seen.get(r.userId) ?? { row: r, accepted: new Set<string>() }
+    if (r.documentKey) hit.accepted.add(r.documentKey)
+    seen.set(r.userId, hit)
+  }
+
+  const gaps: ConsentGap[] = []
+  for (const { row, accepted } of seen.values()) {
+    const missing = REQUIRED.filter((k) => !accepted.has(k))
+    if (!missing.length) continue
+    gaps.push({
+      userId: row.userId,
+      fullName: row.fullName,
+      email: row.email,
+      role: row.role,
+      createdAt: row.createdAt,
+      missing,
+    })
+  }
+
+  return gaps.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime())
 }
 
 /**

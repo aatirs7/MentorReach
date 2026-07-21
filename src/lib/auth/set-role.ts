@@ -97,7 +97,29 @@ export async function setRole(role: Role): Promise<{ ok: true } | { ok: false; e
         method: 'checkbox',
       })
     } catch (err) {
-      console.error('[set-role] could not record terms/privacy acceptance', err)
+      /**
+       * LOUD ON PURPOSE, and greppable.
+       *
+       * The trade this catch makes is that a failure here leaves an account with a role
+       * and no consent record — precisely the gap legal_acceptances exists to close. If
+       * that is going to be survivable, it has to be *noticeable*, so this logs every
+       * field needed to act on it rather than a bare stack trace.
+       *
+       * It is also detectable after the fact: usersMissingConsent() finds these accounts,
+       * and /admin/agreements shows a warning when any exist. The log is the fast signal;
+       * that query is the safety net for when nobody was reading logs.
+       */
+      console.error(
+        '[LEGAL-CONSENT-GAP] role committed but acceptance NOT recorded — remediate this account',
+        {
+          userId: mirrored.id,
+          clerkId: userId,
+          role,
+          documents: ['terms', 'privacy'],
+          at: new Date().toISOString(),
+          error: err instanceof Error ? err.message : String(err),
+        },
+      )
     }
   }
 

@@ -162,8 +162,22 @@ Not an indexing blocker, but TTFB is on the critical path.
 mentors they would be thin auto-generated category pages, which is the doorway-page pattern
 Google devalues. Onboard real mentors first.
 
-**Isaiah has no account.** He cannot see `/ops`, and task completions cannot be credited to
-him, until he signs up on production and is promoted.
+**Neon holds users from BOTH Clerk instances.** Development and production are separate
+Clerk instances sharing one database, so the same person can have two `users` rows with
+different `clerk_id`s — `aatirsiddiqui1@gmail.com` currently does. Nothing breaks
+(`UNIQUE(clerk_id)` holds and every guard reads by `clerk_id`), but the two identities do
+not share data: sessions, links and acceptances recorded against the dev account are
+invisible to the production one. Worth clearing the dev-era rows before launch.
+
+**Consent gaps are detectable.** Recording terms/privacy acceptance is non-fatal in
+`setRole()`, so a failed write leaves an account with a role and no consent record — the
+exact gap the table exists to close. Three things make that visible rather than silent:
+a greppable `[LEGAL-CONSENT-GAP]` error log, `usersMissingConsent()`, a warning panel on
+`/admin/agreements`, and a `consentGaps` count on `/api/health` for monitoring.
+
+Remediation is to **ask the person to accept again**, never to insert a row on their
+behalf. We know the write failed; we do not know they ticked the box, and a consent record
+we cannot evidence makes every other row less trustworthy.
 
 **The Clerk sign-in card still reads "Trajectory Coaching."** That is the Clerk
 *application name*, set per-instance in the dashboard, not in code — nothing in this repo
