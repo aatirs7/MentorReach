@@ -9,7 +9,7 @@ import { z } from 'zod'
  *   REQUIRED — the app genuinely cannot serve a request without these, so they're
  *   validated at boot and a missing one is a loud startup failure.
  *
- *   OPTIONAL — third-party integrations (Stripe, Calendly, Resend). These are typed
+ *   OPTIONAL — third-party integrations (Stripe, Zoom, Resend, blob, cron). These are typed
  *   optional so the app BUILDS AND RUNS without them. Each integration's client module
  *   calls `requireEnv()` at point of use, so a missing key produces one clear error on
  *   the one code path that needs it, rather than taking down the whole app at boot.

@@ -16,7 +16,7 @@ export const AGREEMENT_VERSION = '2026-07'
  *
  * Seed/demo coaches (is_seed) are exempt from the checklist: they exist to populate
  * browse for the demo, so they're live unless suspended. This is why the check has an
- * is_seed carve-out rather than requiring seed rows to carry fake Stripe/Calendly state.
+ * is_seed carve-out rather than requiring seed rows to carry fake Stripe/Zoom state.
  *
  * Pure logic, no I/O — used by the coach dashboard checklist, browse, and the booking
  * gate, so they can't disagree about whether a coach is live.

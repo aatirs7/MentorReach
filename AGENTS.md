@@ -12,10 +12,31 @@ making product decisions. Section references below (§4, §6, …) point into it
 
 Motto: "Reach the people who've been there."
 
+## ⚠️ Keep the handoff current — this is a rule, not a nicety
+
+**[`docs/HANDOFF.md`](docs/HANDOFF.md) is the living state of the system**: what is built,
+which integrations are switched on, what is known-broken, and what is undecided.
+
+**Update it in the SAME commit as any change that alters what it describes.** That means:
+
+- shipping or removing a feature
+- turning an integration on or off, or changing its status
+- an architectural decision, or a deviation from the spec
+- discovering a trap worth remembering (the kind of thing that costs an hour twice)
+- resolving or adding an open question
+
+Do not batch it up "for later" and do not leave it to the person who asks for a handoff. A
+stale doc is worse than a missing one, because a missing one gets verified and a stale one
+gets believed — this file described Calendly as the scheduler for weeks after Calendly was
+deleted from the codebase.
+
+Two checks before you push: does `HANDOFF.md` still describe reality, and does anything in
+THIS file still describe reality?
+
 ## Hard rules (spec §2) — enforce in logic, not just docs
 
 1. **All payment happens on-platform.** No off-platform arrangements at any commission
-   tier. Calendly handles time selection only; money always flows through Stripe Connect.
+   tier. Money always flows through Stripe Connect.
 2. **Commission attribution is frozen and dumb by design.** Set once per (coach, student)
    pair at first transaction, never re-evaluated, no manual overrides, no case-by-case.
    Enforced by `UNIQUE(coach_id, student_id)` on `coach_student_links` — there is
@@ -26,15 +47,20 @@ Motto: "Reach the people who've been there."
    literal §2.3 — see docs/spec-coverage.md.)
 4. **Coaches self-publish; there is no approval gate.** A real coach's profile goes live
    automatically once their checklist is complete (photo, field, role, bio, ≥1 offering,
-   Calendly, Stripe payouts, handbook ack) — all computed in `src/lib/coach-publish.ts`.
+   availability, Stripe payouts, handbook ack) — all computed in `src/lib/coach-publish.ts`.
    `coach_profiles.status` is now only an admin kill switch (`suspended`). Seed/demo
    coaches are exempt (live unless suspended). This is an intentional change from the
    spec's §2.4 approval gate — see docs/spec-coverage.md.
 
 ## Stack
 
-Next.js 16 (App Router) · Neon Postgres · Drizzle · Clerk · Stripe Connect · Calendly ·
+Next.js 16 (App Router) · Neon Postgres · Drizzle · Clerk · Stripe Connect · Zoom ·
 Resend · Vercel · Tailwind 4 + shadcn/ui.
+
+**Scheduling is native, not Calendly.** Coaches declare weekly availability and blackout
+dates; `src/lib/scheduler.ts` generates the slots (pure, unit-tested, DST-aware) and a
+`session_holds` row reserves one for the checkout window. Zoom only supplies the meeting.
+`src/lib/calendly.ts` and its webhook are deleted — if you find a reference, it is a leftover.
 
 ## Conventions that will bite you if you don't know them
 
@@ -82,9 +108,12 @@ database. `db:push` is for local scratch against a Neon branch only.
 ## Integrations are optional by design
 
 `src/lib/env.ts` splits env vars into two tiers. **Required** (Neon, Clerk) fail at boot.
-**Optional** (Stripe, Calendly, Resend, cron) are checked at point of use via
+**Optional** (Stripe, Zoom, Resend, cron, blob) are checked at point of use via
 `requireEnv()`, so the app builds and runs without them and each feature degrades with an
 honest message instead of a crash.
+
+`bookingEnabled()` is `stripe && zoom` — booking needs BOTH, and says so in the UI rather
+than failing at checkout.
 
 This is deliberate — it let the platform be built before the accounts existed — and it is
 a hazard at launch, because a missing key looks like a quiet feature gap rather than an
@@ -92,21 +121,29 @@ error. **`/admin/integrations` is the check.** Never move an optional key's vali
 module scope; a top-level throw breaks `next build` and every page that transitively
 imports it.
 
-## Launch checklist (when the keys land)
+## Launch checklist
+
+**Live status is in [`docs/HANDOFF.md`](docs/HANDOFF.md)** — keep it there, not here, so
+there is one place to look. Done so far: Neon, Clerk (production instance), Resend, blob
+storage, cron. Outstanding: Stripe and Zoom, which together gate booking.
 
 1. Fill `.env.local` (see the tiers in that file), then mirror every var into Vercel.
-2. Set `NEXT_PUBLIC_APP_URL` to the real origin — Stripe return URLs, Calendly webhook
-   registration, and every email link are built from it.
+   **Never put Clerk live keys in `.env.local`** — they are domain-locked and break local
+   sign-in; `env.ts` throws in development if it finds one.
+2. Set `NEXT_PUBLIC_APP_URL` to the real origin — Stripe return URLs and every email link
+   are built from it. Changing it needs a redeploy; `NEXT_PUBLIC_*` is inlined at build time.
 3. Clerk: claims editor (`{ "metadata": "{{user.public_metadata}}" }`) + webhook at
-   `/api/webhooks/clerk`.
+   `/api/webhooks/clerk`. Production instances inherit neither from development, and social
+   logins need your own OAuth credentials rather than Clerk's shared development ones.
 4. Stripe: enable Connect; webhook at `/api/webhooks/stripe` for
    `checkout.session.completed`, `charge.refunded`, `account.updated`.
-5. Calendly: Teams org; run `ensureWebhookSubscription()` once per environment; set the
-   org cancellation cutoff to 24h so its UX matches §11 (it is NOT the authority — we
-   decide refunds).
+5. Zoom: Server-to-Server OAuth app; all three of `ZOOM_ACCOUNT_ID`, `ZOOM_CLIENT_ID`,
+   `ZOOM_CLIENT_SECRET`. The 24h cancellation cutoff is ours (§11) and lives in
+   `src/lib/cancel.ts` — no external tool decides refunds.
 6. Cron: `CRON_SECRET` set; `vercel.json` already schedules `/api/cron` hourly.
-7. Make yourself admin: set `publicMetadata.role = "admin"` in the Clerk dashboard, then
-   **sign out and back in** — the session token only reissues on refresh.
+7. Make yourself admin: `npx tsx scripts/make-admin.ts you@example.com` (it promotes an
+   existing account, so sign up first), then **sign out and back in** — the session token
+   only reissues on refresh.
 8. Verify at `/admin/integrations` that everything reads Live.
 
 ## Unresolved with the client

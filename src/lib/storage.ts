@@ -5,7 +5,7 @@ import { env } from './env'
 /**
  * Coach headshot upload, via Vercel Blob.
  *
- * Optional integration, like Stripe/Calendly/Resend: without BLOB_READ_WRITE_TOKEN the
+ * Optional integration, like Stripe/Zoom/Resend: without BLOB_READ_WRITE_TOKEN the
  * app still builds and runs, and this throws a clear message only on the one path that
  * needs it. Connecting a Blob store in the Vercel dashboard auto-injects the token.
  *

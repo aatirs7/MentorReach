@@ -21,7 +21,7 @@ export type CoachSetupState = {
  *
  * There is NO approval step anymore. Saving these details creates (or updates) the
  * profile; the profile publishes ITSELF once the whole checklist is complete (photo,
- * Calendly, Stripe payouts, handbook — see src/lib/coach-publish.ts). `status` is not
+ * availability, Stripe payouts, handbook — see src/lib/coach-publish.ts). `status` is not
  * set here and stays at its DB default; only an admin ever sets `suspended`.
  *
  * Photo is handled by uploadHeadshotAction, not this form, so re-saving text can never

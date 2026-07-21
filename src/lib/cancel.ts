@@ -38,7 +38,7 @@ export async function cancelSession(params: {
   const session = await db.query.sessions.findFirst({ where: eq(sessions.id, params.sessionId) })
   if (!session) throw new Error(`Session ${params.sessionId} not found`)
 
-  // Idempotency: Calendly retries webhooks, and a user can double-click Cancel.
+  // Idempotency: Stripe retries webhooks, and a user can double-click Cancel.
   if (!canCancel(session.status as SessionStatus)) {
     return {
       status: session.status as SessionStatus,
@@ -52,7 +52,7 @@ export async function cancelSession(params: {
     if (!isParty) throw new Error('Not authorized to cancel this session.')
   }
 
-  // §11: WE decide refund eligibility from timing, not Calendly.
+  // §11: WE decide refund eligibility from timing. No external tool decides it.
   const { refundable, reason } = refundEligibility({
     scheduledStart: session.scheduledStart,
     now,

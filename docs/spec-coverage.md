@@ -22,7 +22,7 @@ on trust. Sections refer to the spec.
 | §6 Commission & referral | `lib/commission.ts` (pure + tested), `lib/booking.ts#getOrCreateLink`, `app/r/[code]/route.ts`, `lib/auth/referral.ts`. |
 | §7 Student survey | `app/onboarding/survey`, `lib/survey-schema.ts` — discriminated union on `education_level` makes Q2's conditional options enforceable server-side. |
 | §8 Browse & book | `lib/browse.ts`, `app/coaches`, `app/coaches/[id]`, `lib/booking.ts`, `app/book/complete`. |
-| §9 Calendly | `lib/calendly.ts`, `app/api/webhooks/calendly/route.ts`. Correlation is `utm_content=<session_id>` echoed back under `tracking`. |
+| §9 Scheduling | **Replaced Calendly with a native scheduler.** `lib/scheduler.ts` (pure slot generation, DST-aware, unit-tested), `lib/scheduling.ts`, `db/schema/availability.ts`, `lib/zoom.ts`. See "Native scheduler" below. |
 | §10 Stripe Connect | `lib/stripe.ts`, `lib/booking.ts`, `app/api/webhooks/stripe/route.ts`, `app/coach/payouts`. Destination charge: `application_fee_amount` + `transfer_data.destination`. |
 | §11 State machine & policy | `lib/sessions.ts` (pure, tested), `lib/cancel.ts`, `app/api/cron/route.ts`. |
 | §12 Dashboards, notes, notifications, trust & safety | `app/sessions`, `app/notifications`, `app/report`, `app/admin/*`, `lib/notifications.ts`, `lib/email/*`. |
@@ -34,8 +34,8 @@ on trust. Sections refer to the spec.
 verification, so a review *queue* buys nothing and just delays invited coaches.
 
 **Now:** a real coach's profile publishes ITSELF the moment its checklist is complete —
-photo (their own upload), field, current role, bio, ≥1 session length + price, Calendly
-connected, Stripe payouts enabled, and Coach Handbook acknowledged. All computed in
+photo (their own upload), field, current role, bio, ≥1 session length + price, availability
+set, Stripe payouts enabled, and Coach Handbook acknowledged. All computed in
 `src/lib/coach-publish.ts` (`isCoachLive`), mirrored as a SQL condition in `lib/browse.ts`
 so browse and the checklist can't disagree. `coach_profiles.status` is now only an admin
 kill switch (`suspended`); nothing blocks initial go-live.
@@ -110,8 +110,12 @@ allowlisted in `next.config.ts` and **should be removed when real assets land**.
   in §4.
 - **Added `sessions.reminder_sent_at`** — a time window is not an idempotency key; an
   hourly reminder job would otherwise re-send every tick.
-- **Added `coach_profiles.calendly_scheduling_url`** — the API URI can't be iframed and the
-  public slug can't be derived from it, so the §8 embed needs its own value.
+- **Added the availability tables** — `coach_availability_rules` (weekly recurring hours in
+  the coach's timezone), `coach_availability_blackouts` (one-off days off), and
+  `session_holds` (a slot reserved for the duration of checkout, `UNIQUE(coach_id, slot_start)`
+  so two concurrent bookings collide in the database rather than in the calendar).
+  `coach_profiles` gained `timezone` and the booking guardrails; the `calendly_*` columns on
+  `coach_profiles` and `sessions` were dropped.
 - **`subscriptions` deferred** — §4 lists it under Phase 1.5; its shape depends on the
   undecided credits-ledger design.
 - **`refunded` vs `canceled_free` built as sequential, not alternative** — §10 and §11 read
@@ -120,12 +124,23 @@ allowlisted in `next.config.ts` and **should be removed when real assets land**.
 
 ## Known limitations
 
-- **Calendly event types are created by the coach, not by us.** §9 says "their event types
-  created". Calendly has since added a Create Event Type endpoint, but its exact request
-  shape couldn't be verified against live docs, and a wrong body would fail at runtime
-  while looking like a working feature — on the path that decides whether a paid student
-  can book. The lookup (`findEventTypeByDuration`) handles coach-created types and fails
-  loudly. See the note in `lib/calendly.ts`.
+- **Native scheduler replaces Calendly entirely (§9 rewritten).** The spec assumed a
+  MentorReach-owned Calendly Teams org with coaches as hosts. That is gone: `lib/calendly.ts`
+  and its webhook are deleted, along with the `calendly_*` columns.
+
+  Coaches now declare weekly availability and blackout dates
+  (`coach_availability_rules`, `coach_availability_blackouts`); `lib/scheduler.ts` generates
+  bookable slots from them, and Zoom supplies only the meeting.
+
+  The ordering also inverted. The spec was pay → receive a single-use link → pick a time,
+  with `invitee.created` as the *only* thing that could move a session to `booked`. It is
+  now **pick a time → hold the slot → pay → confirm**: a `session_holds` row reserves the
+  slot for the 30-minute Stripe checkout window, so a student can no longer pay and then
+  find nothing available. `paid_unscheduled` survives as a safety net for the rare race.
+
+  Consequences worth knowing: there is no third-party cancellation cutoff to keep in sync
+  (§11 refund timing was always ours and now has no external opinion to reconcile), and
+  there is no per-coach subscription cost.
 - **Headshots are URLs, not uploads.** `<img>` with an arbitrary host, so `next/image` is
   bypassed. Revisit when images are hosted by us.
 - **Stripe Checkout is hosted (redirect), not embedded.** §2.1 means "no off-platform
@@ -146,7 +161,7 @@ allowlisted in `next.config.ts` and **should be removed when real assets land**.
 |---|---|
 | §14.1 commission binding | `lib/commission.ts#resolveCommission` + its tests |
 | §14.2 late cancel / no-show payout | the `if (refundable)` branch in `lib/cancel.ts` |
-| §14.3 Calendly org model | `lib/calendly.ts` |
+| §14.3 Calendly org model | **Moot — Calendly removed.** The equivalent open question is the Zoom host model: the platform account hosts every meeting today. Per-coach Zoom would be `lib/zoom.ts` plus a `zoom_user_id` column. |
 | §14.4 coach Stripe onboarding | `app/coach/payouts` builds the self-serve path, which an admin can also walk a coach through — a superset of either answer |
 | §14.5 domain | blocks promoting Clerk to a production instance; dev keys until then |
 | §7 Q7 `path_certainty` labels | `lib/survey-schema.ts#PATH_CERTAINTY_LABELS` |

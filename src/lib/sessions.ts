@@ -50,8 +50,9 @@ export function isTerminal(status: SessionStatus): boolean {
  *   - Inside 24h: no refund, no credit.
  *   - No-show is treated as a late cancel.
  *
- * Refund eligibility is decided HERE, by us, from timing — never by Calendly. Calendly's
- * cancellation cutoff is set to 24h only so its UX matches; it is not the authority (§9).
+ * Refund eligibility is decided HERE, by us, from timing — never by an external tool.
+ * Scheduling is native now, so there is no third party with an opinion to reconcile; the
+ * §9 note about matching Calendly's cancellation cutoff no longer applies.
  *
  * An unscheduled session (paid, never booked a time) is always refundable: the student
  * paid and got nothing, and there's no held slot to compensate the coach for.
