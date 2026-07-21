@@ -11,8 +11,8 @@ const LABELS: Record<string, string> = {
   payment_received: 'Payment received',
   session_canceled: 'Session canceled',
   session_reminder: 'Session reminder',
-  coach_approved: 'Profile approved',
-  coach_rejected: 'Application update',
+  mentor_approved: 'Profile approved',
+  mentor_rejected: 'Application update',
   new_report: 'New report filed',
 }
 

@@ -27,7 +27,7 @@ import type { Role } from '@/types/globals'
  * Note: Server Actions are POSTs to the route they're used on, so a proxy matcher can
  * silently stop covering them. Authorization lives here, in the action itself.
  */
-const SELECTABLE_ROLES: readonly Role[] = ['student', 'coach']
+const SELECTABLE_ROLES: readonly Role[] = ['student', 'mentor']
 
 export async function setRole(role: Role): Promise<{ ok: true } | { ok: false; error: string }> {
   const { userId } = await auth()
@@ -60,8 +60,8 @@ export async function setRole(role: Role): Promise<{ ok: true } | { ok: false; e
    * The user.updated webhook does this too, and normally would. But it's the ONLY other
    * path, so until the webhook is configured (it needs a deployed URL, so it can't exist
    * on day one) the mirror would stay on its 'student' default — and every guard reads
-   * the mirror. A coach would pick "coach", get written to Clerk, then be bounced off
-   * /coach by requireCoach() reading a stale row.
+   * the mirror. A mentor would pick "mentor", get written to Clerk, then be bounced off
+   * /mentor by requireMentor() reading a stale row.
    *
    * This does not violate "never write a role to Neon without writing Clerk first" — it
    * IS that rule: Clerk is written above, and this write is downstream of it. The

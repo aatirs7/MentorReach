@@ -6,7 +6,7 @@ This version has breaking changes — APIs, conventions, and file structure may 
 
 # MentorReach
 
-A Preply-style two-sided coaching marketplace. **The source of truth is
+A Preply-style two-sided mentoring marketplace. **The source of truth is
 [`docs/mentorreach-platform-spec.md`](docs/mentorreach-platform-spec.md)** — read it before
 making product decisions. Section references below (§4, §6, …) point into it.
 
@@ -17,39 +17,42 @@ Motto: "Reach the people who've been there."
 **[`docs/HANDOFF.md`](docs/HANDOFF.md) is the living state of the system**: what is built,
 which integrations are switched on, what is known-broken, and what is undecided.
 
-**Update it in the SAME commit as any change that alters what it describes.** That means:
+**Update it at the END of a working session, before you stop** — not after every edit. One
+pass covering everything that changed, so it reads as a coherent state description rather
+than an append-only changelog.
 
-- shipping or removing a feature
-- turning an integration on or off, or changing its status
+What belongs in it:
+
+- a feature shipped or removed
+- an integration turned on or off, or its status changed
 - an architectural decision, or a deviation from the spec
-- discovering a trap worth remembering (the kind of thing that costs an hour twice)
-- resolving or adding an open question
+- a trap worth remembering (the kind that costs an hour twice)
+- an open question resolved or added
 
-Do not batch it up "for later" and do not leave it to the person who asks for a handoff. A
-stale doc is worse than a missing one, because a missing one gets verified and a stale one
-gets believed — this file described Calendly as the scheduler for weeks after Calendly was
+A stale doc is worse than a missing one: a missing one gets verified, a stale one gets
+believed. This file described Calendly as the scheduler for weeks after Calendly was
 deleted from the codebase.
 
-Two checks before you push: does `HANDOFF.md` still describe reality, and does anything in
-THIS file still describe reality?
+Two checks before you finish: does `HANDOFF.md` still describe reality, and does anything
+in THIS file still describe reality?
 
 ## Hard rules (spec §2) — enforce in logic, not just docs
 
 1. **All payment happens on-platform.** No off-platform arrangements at any commission
    tier. Money always flows through Stripe Connect.
-2. **Commission attribution is frozen and dumb by design.** Set once per (coach, student)
+2. **Commission attribution is frozen and dumb by design.** Set once per (mentor, student)
    pair at first transaction, never re-evaluated, no manual overrides, no case-by-case.
-   Enforced by `UNIQUE(coach_id, student_id)` on `coach_student_links` — there is
+   Enforced by `UNIQUE(mentor_id, student_id)` on `mentor_student_links` — there is
    physically nowhere to put a second commission value for a pair. All attribution logic
    lives in `src/lib/commission.ts` and nowhere else.
 3. **Students are gated behind the survey — at BOOKING, not browsing.** Browse is public;
    booking requires `student_surveys.completed_at IS NOT NULL`. (Intentional change from a
    literal §2.3 — see docs/spec-coverage.md.)
-4. **Coaches self-publish; there is no approval gate.** A real coach's profile goes live
+4. **Mentors self-publish; there is no approval gate.** A real mentor's profile goes live
    automatically once their checklist is complete (photo, field, role, bio, ≥1 offering,
-   availability, Stripe payouts, handbook ack) — all computed in `src/lib/coach-publish.ts`.
-   `coach_profiles.status` is now only an admin kill switch (`suspended`). Seed/demo
-   coaches are exempt (live unless suspended). This is an intentional change from the
+   availability, Stripe payouts, handbook ack) — all computed in `src/lib/mentor-publish.ts`.
+   `mentor_profiles.status` is now only an admin kill switch (`suspended`). Seed/demo
+   mentors are exempt (live unless suspended). This is an intentional change from the
    spec's §2.4 approval gate — see docs/spec-coverage.md.
 
 ## Stack
@@ -57,7 +60,7 @@ THIS file still describe reality?
 Next.js 16 (App Router) · Neon Postgres · Drizzle · Clerk · Stripe Connect · Zoom ·
 Resend · Vercel · Tailwind 4 + shadcn/ui.
 
-**Scheduling is native, not Calendly.** Coaches declare weekly availability and blackout
+**Scheduling is native, not Calendly.** Mentors declare weekly availability and blackout
 dates; `src/lib/scheduler.ts` generates the slots (pure, unit-tested, DST-aware) and a
 `session_holds` row reserves one for the checkout window. Zoom only supplies the meeting.
 `src/lib/calendly.ts` and its webhook are deleted — if you find a reference, it is a leftover.
@@ -80,8 +83,8 @@ dates; `src/lib/scheduler.ts` generates the slots (pure, unit-tested, DST-aware)
 - **Brand hexes are declared once**, in `:root` in `globals.css`, and every shadcn
   semantic token aliases them. Never hardcode a brand hex anywhere else. If a component
   needs to look on-brand, it should already.
-- **All `coach_id` / `student_id` columns reference `users.id`**, never
-  `coach_profiles.id`. Join to profiles via `coach_profiles.user_id`.
+- **All `mentor_id` / `student_id` columns reference `users.id`**, never
+  `mentor_profiles.id`. Join to profiles via `mentor_profiles.user_id`.
 - **Money is integer cents.** Never float, never `numeric`. `splitAmount()` derives payout
   as `amount − commission`; don't "fix" it into two independent roundings or the
   `sessions_amount_split_balances` CHECK will eventually fire on a rounding cent.
@@ -154,7 +157,7 @@ Spec §14 plus schema-shaped questions are open — see `docs/mentorreach-platfo
 - **§14.1 commission binding** — the per-pair reading is an ASSUMPTION. It's quarantined
   in `src/lib/commission.ts` (pure, no I/O, no callers except `getOrCreateLink`) so a
   different answer is a one-file change plus a test update.
-- **§14.2 late cancel** — we assume the coach keeps the payout. Changing it is the
+- **§14.2 late cancel** — we assume the mentor keeps the payout. Changing it is the
   `if (refundable)` branch in `src/lib/cancel.ts`.
 - **§7 Q7 `path_certainty`** — stored 1–5; labels in `src/lib/survey-schema.ts` need
   confirming.

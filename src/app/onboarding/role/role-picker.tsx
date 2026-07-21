@@ -2,14 +2,14 @@
 
 import { useRouter } from 'next/navigation'
 import { useState, useTransition } from 'react'
-import { CoachIcon, StudentIcon } from './role-icons'
+import { MentorIcon, StudentIcon } from './role-icons'
 import { Button } from '@/components/ui/button'
 import { setRole } from '@/lib/auth/set-role'
 import type { Role } from '@/types/globals'
 
 /**
  * The two options are deliberately NOT visual equals: roughly 95% of signups are
- * students, so the student card is the ink block and the coach card is the quiet
+ * students, so the student card is the ink block and the mentor card is the quiet
  * outlined one beside it. Two identical outlined cards made the reader do work the
  * data already answers.
  *
@@ -22,17 +22,17 @@ const CHOICES = [
     title: "I'm a student",
     blurb:
       'Find someone who already has the job you want, and book time with them. We’ll ask a few questions first so we can point you at the right people.',
-    cta: 'Find a coach',
+    cta: 'Find a mentor',
   },
   {
-    role: 'coach',
-    title: 'I want to coach',
+    role: 'mentor',
+    title: 'I want to mentor',
     blurb:
       'Share what you know, set your own rates and hours, and get paid per session. We’ll walk you through setup and your profile goes live automatically once it’s complete.',
-    cta: 'Start coaching',
+    cta: 'Start mentoring',
   },
 ] as const satisfies ReadonlyArray<{
-  role: Extract<Role, 'student' | 'coach'>
+  role: Extract<Role, 'student' | 'mentor'>
   title: string
   blurb: string
   cta: string
@@ -44,7 +44,7 @@ export function RolePicker() {
   const [error, setError] = useState<string | null>(null)
   const [chosen, setChosen] = useState<Role | null>(null)
 
-  function choose(role: Extract<Role, 'student' | 'coach'>) {
+  function choose(role: Extract<Role, 'student' | 'mentor'>) {
     setError(null)
     setChosen(role)
 
@@ -59,7 +59,7 @@ export function RolePicker() {
 
       // Clerk's session token only picks up the new claim on refresh, so a client-side
       // push would still read the old (empty) role and bounce us back here.
-      window.location.href = role === 'student' ? '/onboarding/survey' : '/coach/onboarding'
+      window.location.href = role === 'student' ? '/onboarding/survey' : '/mentor/onboarding'
     })
   }
 
@@ -87,7 +87,7 @@ export function RolePicker() {
               {primary ? (
                 <StudentIcon className="size-12 text-gold" />
               ) : (
-                <CoachIcon className="size-12 text-gold" />
+                <MentorIcon className="size-12 text-gold" />
               )}
 
               <h2 className={primary ? 'mt-5 text-2xl' : 'mt-5 text-xl'}>{c.title}</h2>

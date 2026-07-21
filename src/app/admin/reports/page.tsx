@@ -97,7 +97,7 @@ function ReportRow({
 
       <div className="mt-4 flex flex-wrap gap-4 text-xs">
         {reported ? (
-          // Accounts, not coaches: a report can be filed against a student too.
+          // Accounts, not mentors: a report can be filed against a student too.
           <Link href="/admin/users" className="text-slate underline underline-offset-4">
             Manage this user
           </Link>

@@ -1,19 +1,19 @@
 import type { MetadataRoute } from 'next'
-import { sitemapCoaches } from '@/lib/browse'
+import { sitemapMentors } from '@/lib/browse'
 import { allDocuments } from '@/lib/legal'
 import { absoluteUrl } from '@/lib/seo'
 
 /**
  * Served at /sitemap.xml — this is the URL to submit in Google Search Console.
  *
- * Coach profiles are generated from the SAME liveCoachSql() the browse page uses, so a
- * coach who isn't publicly visible can never be listed here. That matters more than it
- * looks: getPublicCoach() returns null for a non-live coach and the page 404s, and a
+ * Mentor profiles are generated from the SAME liveMentorSql() the browse page uses, so a
+ * mentor who isn't publicly visible can never be listed here. That matters more than it
+ * looks: getPublicMentor() returns null for a non-live mentor and the page 404s, and a
  * sitemap full of 404s is read as a quality signal about the whole site, not as a few
  * stale rows.
  *
- * `force-dynamic` because the roster changes whenever a coach completes setup or is
- * suspended. A cached sitemap would keep advertising suspended coaches. It's one small
+ * `force-dynamic` because the roster changes whenever a mentor completes setup or is
+ * suspended. A cached sitemap would keep advertising suspended mentors. It's one small
  * query per crawl, and crawlers fetch this rarely.
  */
 export const dynamic = 'force-dynamic'
@@ -30,8 +30,8 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
    */
   const staticRoutes: MetadataRoute.Sitemap = [
     { url: absoluteUrl('/'), changeFrequency: 'weekly', priority: 1 },
-    { url: absoluteUrl('/coaches'), changeFrequency: 'daily', priority: 0.9 },
-    { url: absoluteUrl('/coaches/apply'), changeFrequency: 'monthly', priority: 0.7 },
+    { url: absoluteUrl('/mentors'), changeFrequency: 'daily', priority: 0.9 },
+    { url: absoluteUrl('/mentors/apply'), changeFrequency: 'monthly', priority: 0.7 },
     /**
      * The legal pages are indexable on purpose. They are low priority for ranking, but a
      * marketplace whose terms and privacy policy cannot be found is a trust signal in the
@@ -47,12 +47,12 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     })),
   ]
 
-  let coachRoutes: MetadataRoute.Sitemap = []
+  let mentorRoutes: MetadataRoute.Sitemap = []
 
   try {
-    const coaches = await sitemapCoaches()
-    coachRoutes = coaches.map((c) => ({
-      url: absoluteUrl(`/coaches/${c.userId}`),
+    const mentors = await sitemapMentors()
+    mentorRoutes = mentors.map((c) => ({
+      url: absoluteUrl(`/mentors/${c.userId}`),
       lastModified: c.updatedAt,
       changeFrequency: 'weekly' as const,
       priority: 0.8,
@@ -63,8 +63,8 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
      * worse than a short one: crawlers back off from the endpoint, and the homepage and
      * browse page stop being announced too.
      */
-    console.error('[sitemap] could not list coaches', err)
+    console.error('[sitemap] could not list mentors', err)
   }
 
-  return [...staticRoutes, ...coachRoutes]
+  return [...staticRoutes, ...mentorRoutes]
 }

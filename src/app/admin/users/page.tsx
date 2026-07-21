@@ -42,7 +42,7 @@ export default async function AdminUsersPage() {
 
   return (
     <main className="mx-auto w-full max-w-7xl px-6 py-10">
-      <ConsoleHeader title="Accounts" description="Suspending signs someone out immediately and blocks them from signing back in. For coaches it also pulls their profile out of browse." />
+      <ConsoleHeader title="Accounts" description="Suspending signs someone out immediately and blocks them from signing back in. For mentors it also pulls their profile out of browse." />
 
       {!clerkReachable ? (
         <Card className="mt-8 border-gold bg-secondary p-5">

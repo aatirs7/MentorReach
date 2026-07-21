@@ -2,7 +2,7 @@
  * Send one real email through Resend, to prove the integration works.
  *
  *   npm run email:test -- you@example.com
- *   npm run email:test -- you@example.com coach-approved
+ *   npm run email:test -- you@example.com mentor-approved
  *
  * Every template is rendered with realistic sample data, so you can see what each one
  * actually looks like in a real client — Gmail and Outlook both mangle HTML email in
@@ -31,9 +31,9 @@ import {
   ApplicationAcceptedEmail,
   ApplicationReceivedEmail,
   BookingConfirmedEmail,
-  CoachApprovedEmail,
-  CoachInviteEmail,
-  CoachRejectedEmail,
+  MentorApprovedEmail,
+  MentorInviteEmail,
+  MentorRejectedEmail,
   SessionCanceledEmail,
   SessionReminderEmail,
 } from '../src/lib/email/templates'
@@ -42,38 +42,38 @@ const APP = process.env.NEXT_PUBLIC_APP_URL?.replace(/\/+$/, '') ?? 'http://loca
 
 /** Sample data is deliberately realistic — placeholder text hides layout problems. */
 const SAMPLES: Record<string, { subject: string; react: () => ReactElement }> = {
-  'coach-invite': {
-    subject: 'You’re invited to coach on MentorReach',
+  'mentor-invite': {
+    subject: 'You’re invited to mentor on MentorReach',
     react: () =>
-      CoachInviteEmail({
+      MentorInviteEmail({
         firstName: 'Isaiah',
         inviteUrl: `${APP}/join/sample-invite-token`,
         inviterName: 'Aatir Siddiqui',
       }),
   },
   'application-received': {
-    subject: 'We got your MentorReach coach application',
+    subject: 'We got your MentorReach mentor application',
     react: () => ApplicationReceivedEmail({ firstName: 'Nadia' }),
   },
   'application-accepted': {
-    subject: 'You’re in — set up your MentorReach coaching profile',
+    subject: 'You’re in — set up your MentorReach mentoring profile',
     react: () =>
       ApplicationAcceptedEmail({ firstName: 'Nadia', setupUrl: `${APP}/join/sample-invite-token` }),
   },
-  'coach-approved': {
-    subject: 'You’re approved to coach on MentorReach',
-    react: () => CoachApprovedEmail({ coachName: 'Nadia', payoutsUrl: `${APP}/coach/payouts` }),
+  'mentor-approved': {
+    subject: 'You’re approved to mentor on MentorReach',
+    react: () => MentorApprovedEmail({ mentorName: 'Nadia', payoutsUrl: `${APP}/mentor/payouts` }),
   },
-  'coach-rejected': {
+  'mentor-rejected': {
     subject: 'An update on your MentorReach application',
-    react: () => CoachRejectedEmail({ coachName: 'Nadia' }),
+    react: () => MentorRejectedEmail({ mentorName: 'Nadia' }),
   },
   'booking-confirmed': {
     subject: 'Your session with Nadia Haddad is booked',
     react: () =>
       BookingConfirmedEmail({
         studentName: 'Sam',
-        coachName: 'Nadia Haddad',
+        mentorName: 'Nadia Haddad',
         lengthMinutes: 30,
         startsAt: 'Tuesday, 5 August at 4:00 PM EDT',
         amount: '$60.00',
@@ -105,7 +105,7 @@ const SAMPLES: Record<string, { subject: string; react: () => ReactElement }> = 
 }
 
 const to = process.argv[2]
-const which = process.argv[3] ?? 'coach-invite'
+const which = process.argv[3] ?? 'mentor-invite'
 
 if (!to) {
   console.error('Usage: npm run email:test -- you@example.com [template]\n')

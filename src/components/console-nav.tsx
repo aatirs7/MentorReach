@@ -9,7 +9,7 @@ import { usePathname } from 'next/navigation'
  */
 const ITEMS = [
   { href: '/admin', label: 'Dashboard', exact: true },
-  { href: '/admin/coaches', label: 'Coaches' },
+  { href: '/admin/mentors', label: 'Mentors' },
   { href: '/admin/students', label: 'Students' },
   { href: '/ops/applications', label: 'Applications' },
   { href: '/admin/reports', label: 'Reports' },

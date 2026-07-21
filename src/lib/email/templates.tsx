@@ -83,7 +83,7 @@ function Shell({ preview, children }: { preview: string; children: ReactNode }) 
 
 export function BookingConfirmedEmail(props: {
   studentName: string
-  coachName: string
+  mentorName: string
   lengthMinutes: number
   startsAt: string
   amount: string
@@ -94,16 +94,16 @@ export function BookingConfirmedEmail(props: {
   joinUrl?: string
 }) {
   return (
-    <Shell preview={`Your session with ${props.coachName} is booked`}>
+    <Shell preview={`Your session with ${props.mentorName} is booked`}>
       <Heading style={h1}>Your session is booked</Heading>
       <Text style={text}>Hi {props.studentName},</Text>
       <Text style={text}>
-        You&rsquo;re confirmed with {props.coachName}. Details are below, and you&rsquo;ll
+        You&rsquo;re confirmed with {props.mentorName}. Details are below, and you&rsquo;ll
         join over Zoom.
       </Text>
       <Section style={{ margin: '20px 0' }}>
         <Text style={detailRow}>
-          <strong>Coach:</strong> {props.coachName}
+          <strong>Mentor:</strong> {props.mentorName}
         </Text>
         <Text style={detailRow}>
           <strong>When:</strong> {props.startsAt}
@@ -141,7 +141,7 @@ export function BookingConfirmedEmail(props: {
 
 export function PaymentReceivedEmail(props: {
   studentName: string
-  coachName: string
+  mentorName: string
   amount: string
   scheduleUrl: string
 }) {
@@ -150,7 +150,7 @@ export function PaymentReceivedEmail(props: {
       <Heading style={h1}>Payment received: pick your time</Heading>
       <Text style={text}>Hi {props.studentName},</Text>
       <Text style={text}>
-        We&rsquo;ve received {props.amount} for your session with {props.coachName}. One
+        We&rsquo;ve received {props.amount} for your session with {props.mentorName}. One
         step left: choose a time that works for you.
       </Text>
       <Link href={props.scheduleUrl} style={button}>
@@ -209,11 +209,11 @@ export function SessionReminderEmail(props: {
   )
 }
 
-export function CoachApprovedEmail(props: { coachName: string; payoutsUrl: string }) {
+export function MentorApprovedEmail(props: { mentorName: string; payoutsUrl: string }) {
   return (
-    <Shell preview="You're approved to coach on MentorReach">
+    <Shell preview="You're approved to mentor on MentorReach">
       <Heading style={h1}>You&rsquo;re approved</Heading>
-      <Text style={text}>Hi {props.coachName},</Text>
+      <Text style={text}>Hi {props.mentorName},</Text>
       <Text style={text}>
         Your profile has been reviewed and approved. One step before students can book
         you: connect your payout account so we can pay you out after each session.
@@ -229,13 +229,13 @@ export function CoachApprovedEmail(props: { coachName: string; payoutsUrl: strin
   )
 }
 
-export function CoachRejectedEmail(props: { coachName: string; reason?: string }) {
+export function MentorRejectedEmail(props: { mentorName: string; reason?: string }) {
   return (
     <Shell preview="An update on your MentorReach application">
       <Heading style={h1}>An update on your application</Heading>
-      <Text style={text}>Hi {props.coachName},</Text>
+      <Text style={text}>Hi {props.mentorName},</Text>
       <Text style={text}>
-        Thanks for applying to coach on MentorReach. We&rsquo;re not moving forward with
+        Thanks for applying to mentor on MentorReach. We&rsquo;re not moving forward with
         your profile at this time.
       </Text>
       {props.reason ? <Text style={text}>{props.reason}</Text> : null}
@@ -249,11 +249,11 @@ export function CoachRejectedEmail(props: { coachName: string; reason?: string }
 
 export function ApplicationReceivedEmail(props: { firstName: string }) {
   return (
-    <Shell preview="We got your MentorReach coach application">
+    <Shell preview="We got your MentorReach mentor application">
       <Heading style={h1}>Application received</Heading>
       <Text style={text}>Hi {props.firstName},</Text>
       <Text style={text}>
-        Thanks for your interest in coaching with MentorReach. We&rsquo;ve got your
+        Thanks for your interest in mentoring with MentorReach. We&rsquo;ve got your
         application and we&rsquo;ll follow up once we&rsquo;ve reviewed it.
       </Text>
       <Text style={muted}>No action needed from you right now.</Text>
@@ -268,8 +268,8 @@ export function NewApplicationEmail(props: {
   reviewUrl: string
 }) {
   return (
-    <Shell preview={`New coach application: ${props.fullName}`}>
-      <Heading style={h1}>New coach application</Heading>
+    <Shell preview={`New mentor application: ${props.fullName}`}>
+      <Heading style={h1}>New mentor application</Heading>
       <Text style={text}>
         <strong>{props.fullName}</strong> — {props.field}
       </Text>
@@ -281,14 +281,14 @@ export function NewApplicationEmail(props: {
   )
 }
 
-export function CoachInviteEmail(props: { firstName?: string; inviteUrl: string; inviterName?: string }) {
+export function MentorInviteEmail(props: { firstName?: string; inviteUrl: string; inviterName?: string }) {
   return (
-    <Shell preview="You're invited to coach on MentorReach">
-      <Heading style={h1}>You&rsquo;re invited to coach</Heading>
+    <Shell preview="You're invited to mentor on MentorReach">
+      <Heading style={h1}>You&rsquo;re invited to mentor</Heading>
       <Text style={text}>{props.firstName ? `Hi ${props.firstName},` : 'Hi,'}</Text>
       <Text style={text}>
         {props.inviterName ? `${props.inviterName} invited you` : 'You&rsquo;ve been invited'} to
-        join MentorReach as a coach. Follow the link to create your account and we&rsquo;ll walk you
+        join MentorReach as a mentor. Follow the link to create your account and we&rsquo;ll walk you
         through setup — your profile, rates, calendar, and payouts. Your profile goes live
         automatically once it&rsquo;s complete.
       </Text>
@@ -304,11 +304,11 @@ export function CoachInviteEmail(props: { firstName?: string; inviteUrl: string;
 
 export function ApplicationAcceptedEmail(props: { firstName: string; setupUrl: string }) {
   return (
-    <Shell preview="You're in — set up your MentorReach coaching profile">
+    <Shell preview="You're in — set up your MentorReach mentoring profile">
       <Heading style={h1}>You&rsquo;re in</Heading>
       <Text style={text}>Hi {props.firstName},</Text>
       <Text style={text}>
-        We&rsquo;d love to have you coach on MentorReach. Create your account and set up your
+        We&rsquo;d love to have you mentor on MentorReach. Create your account and set up your
         profile — add a photo, confirm your rates, connect payouts and your calendar — and
         you&rsquo;ll go live automatically. We&rsquo;ve pre-filled what we can from your
         application.

@@ -9,8 +9,8 @@ import { env } from './env'
  * email link are built from — so a wrong value fails loudly across the product rather
  * than silently emitting canonical tags that point at localhost.
  *
- * Trailing slashes are stripped because `${siteUrl()}/coaches` is how every caller builds
- * a path, and "https://mentorreach.com//coaches" is a different URL to a crawler.
+ * Trailing slashes are stripped because `${siteUrl()}/mentors` is how every caller builds
+ * a path, and "https://mentorreach.com//mentors" is a different URL to a crawler.
  */
 export function siteUrl(): string {
   return env.NEXT_PUBLIC_APP_URL.replace(/\/+$/, '')
@@ -34,7 +34,7 @@ export function absoluteUrl(path = '/'): string {
 export const PRIVATE_PATHS = [
   '/admin',
   '/ops',
-  '/coach',
+  '/mentor',
   '/sessions',
   '/notifications',
   '/onboarding',

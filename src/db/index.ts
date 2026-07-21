@@ -14,7 +14,7 @@ import * as schema from './schema'
  * THE CATCH: neon-http does NOT support interactive transactions
  * (`db.transaction(async tx => …)`). It does support `db.batch()` — multiple
  * statements in one atomic round-trip. Phase 1's booking flow (insert
- * coach_student_links + insert sessions atomically) is expressible as a batch().
+ * mentor_student_links + insert sessions atomically) is expressible as a batch().
  *
  * If a future route genuinely needs an interactive transaction, add a SECOND export
  * here backed by `drizzle-orm/neon-serverless` (WebSocket Pool) and use it only for

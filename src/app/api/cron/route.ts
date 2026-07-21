@@ -113,7 +113,7 @@ async function sendReminders(now: Date): Promise<number> {
     .set({ reminderSentAt: now })
     .where(inArray(sessions.id, due.map((s) => s.id)))
 
-  const peopleIds = [...new Set(due.flatMap((s) => [s.studentId, s.coachId]))]
+  const peopleIds = [...new Set(due.flatMap((s) => [s.studentId, s.mentorId]))]
   const people = await db.query.users.findMany({ where: inArray(users.id, peopleIds) })
   const byId = new Map(people.map((p) => [p.id, p]))
 
@@ -121,8 +121,8 @@ async function sendReminders(now: Date): Promise<number> {
 
   for (const session of due) {
     const student = byId.get(session.studentId)
-    const coach = byId.get(session.coachId)
-    if (!student || !coach || !session.scheduledStart) continue
+    const mentor = byId.get(session.mentorId)
+    if (!student || !mentor || !session.scheduledStart) continue
 
     const startsAt = session.scheduledStart.toLocaleString('en-US', {
       dateStyle: 'full',
@@ -139,21 +139,21 @@ async function sendReminders(now: Date): Promise<number> {
           subject: 'Your session is tomorrow',
           react: SessionReminderEmail({
             recipientName: firstName(student.fullName),
-            otherPartyName: coach.fullName ?? 'your coach',
+            otherPartyName: mentor.fullName ?? 'your mentor',
             startsAt,
             manageUrl: `${env.NEXT_PUBLIC_APP_URL}/sessions`,
           }),
         },
       }),
       notify({
-        userId: coach.id,
+        userId: mentor.id,
         type: 'session_reminder',
         payload: { sessionId: session.id },
         email: {
-          to: coach.email,
+          to: mentor.email,
           subject: 'You have a session tomorrow',
           react: SessionReminderEmail({
-            recipientName: firstName(coach.fullName),
+            recipientName: firstName(mentor.fullName),
             otherPartyName: student.fullName ?? 'your student',
             startsAt,
             manageUrl: `${env.NEXT_PUBLIC_APP_URL}/sessions`,

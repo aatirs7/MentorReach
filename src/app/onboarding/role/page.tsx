@@ -25,7 +25,7 @@ export const metadata = { title: 'Choose your path', ...NO_INDEX }
  *  - The Neon mirror can't answer this question AT ALL: users.role is NOT NULL and
  *    ensureUser() defaults it to 'student', so "hasn't chosen yet" and "chose student"
  *    are indistinguishable there. Reading the mirror here would redirect every new user
- *    to the survey and make it impossible to sign up as a coach.
+ *    to the survey and make it impossible to sign up as a mentor.
  *
  * publicMetadata is the only source that distinguishes unset from set, and it's
  * authoritative and fresh. Guards elsewhere read the mirror, which is correct for THEM:
@@ -39,7 +39,7 @@ export default async function RolePage() {
 
   // Role is set once; don't offer to switch sides of the marketplace.
   if (chosen === 'student') redirect('/onboarding/survey')
-  if (chosen === 'coach') redirect('/coach')
+  if (chosen === 'mentor') redirect('/mentor')
   if (chosen === 'admin') redirect('/admin')
 
   return (

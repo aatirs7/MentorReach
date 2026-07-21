@@ -1,16 +1,16 @@
 /**
- * The single place a coach's avatar is resolved.
+ * The single place a mentor's avatar is resolved.
  *
- * THE RULE THIS ENFORCES: placeholder faces are for SEED coaches only. A real coach's
- * profile must never render a generated face while the site tells students every coach
+ * THE RULE THIS ENFORCES: placeholder faces are for SEED mentors only. A real mentor's
+ * profile must never render a generated face while the site tells students every mentor
  * is "verified against their stated employer". A stock face on a supposedly-vetted
  * profile isn't a cosmetic slip, it's the vetting promise being false at the most
  * visible point on the page.
  *
  * It's enforced here rather than by remembering: even if a real profile somehow ends up
- * with a pravatar URL (pasted by a coach, copied from seed data, restored from a bad
+ * with a pravatar URL (pasted by a mentor, copied from seed data, restored from a bad
  * backup), this function refuses it and falls back to initials. `isSeed` defaults to
- * false in the schema, so a real coach cannot become seed by omission either.
+ * false in the schema, so a real mentor cannot become seed by omission either.
  *
  * Not 'server-only': used by client card components.
  */
@@ -59,7 +59,7 @@ export function resolveHeadshot(profile: {
   return { kind: 'image', url: profile.headshotUrl }
 }
 
-/** Deterministic placeholder portrait for a seed coach. Same id, same face, every time. */
+/** Deterministic placeholder portrait for a seed mentor. Same id, same face, every time. */
 export function seedHeadshotUrl(seedKey: string): string {
   return `https://i.pravatar.cc/400?u=${encodeURIComponent(seedKey)}`
 }

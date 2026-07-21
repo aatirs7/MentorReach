@@ -58,8 +58,8 @@ export function OpsBoard({ tasks }: { tasks: OpsTaskView[] }) {
 
   /**
    * Owner filtering keeps a parent whose CHILDREN match, even when the parent itself is
-   * owned by someone else. "Onboard the 9 founding coaches" is owned by Both; hiding it
-   * when filtering to Isaiah would hide his coaches with it and make the filter look
+   * owned by someone else. "Onboard the 9 founding mentors" is owned by Both; hiding it
+   * when filtering to Isaiah would hide his mentors with it and make the filter look
    * broken.
    */
   const visible = useMemo(() => {

@@ -17,23 +17,23 @@ export function SiteFooter() {
         <nav className="flex flex-wrap gap-x-10 gap-y-3 text-sm">
           <div className="space-y-2">
             <p className="font-mono text-[10px] tracking-widest text-gold uppercase">Students</p>
-            <Link href="/coaches" className="block text-paper/70 hover:text-paper">
-              Browse coaches
+            <Link href="/mentors" className="block text-paper/70 hover:text-paper">
+              Browse mentors
             </Link>
             <Link href="/sessions" className="block text-paper/70 hover:text-paper">
               Your sessions
             </Link>
           </div>
           <div className="space-y-2">
-            <p className="font-mono text-[10px] tracking-widest text-gold uppercase">Coaches</p>
-            <Link href="/coaches/apply" className="block text-paper/70 hover:text-paper">
-              Become a coach
+            <p className="font-mono text-[10px] tracking-widest text-gold uppercase">Mentors</p>
+            <Link href="/mentors/apply" className="block text-paper/70 hover:text-paper">
+              Become a mentor
             </Link>
-            <Link href="/coach/handbook" className="block text-paper/70 hover:text-paper">
-              Coach handbook
+            <Link href="/mentor/handbook" className="block text-paper/70 hover:text-paper">
+              Mentor handbook
             </Link>
-            <Link href="/coach" className="block text-paper/70 hover:text-paper">
-              Your coaching
+            <Link href="/mentor" className="block text-paper/70 hover:text-paper">
+              Your mentoring
             </Link>
           </div>
           {/*

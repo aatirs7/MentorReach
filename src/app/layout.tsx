@@ -36,8 +36,8 @@ const ibmPlexMono = IBM_Plex_Mono({
 
 const TAGLINE = "Reach the people who've been there."
 const DESCRIPTION =
-  'Book one-to-one career coaching with people who already have the job you want. ' +
-  'Hand-picked coaches across finance, technology, engineering, cybersecurity and creative.'
+  'Book one-to-one career mentoring with people who already have the job you want. ' +
+  'Hand-picked mentors across finance, technology, engineering, cybersecurity and creative.'
 
 export const metadata: Metadata = {
   /**
@@ -121,7 +121,7 @@ export default function RootLayout({
                 '@type': 'SearchAction',
                 target: {
                   '@type': 'EntryPoint',
-                  urlTemplate: absoluteUrl('/coaches?industry={search_term_string}'),
+                  urlTemplate: absoluteUrl('/mentors?industry={search_term_string}'),
                 },
                 'query-input': 'required name=search_term_string',
               },

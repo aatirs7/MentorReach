@@ -1,15 +1,15 @@
 import { boolean, index, jsonb, pgTable, text, timestamp, uuid } from 'drizzle-orm/pg-core'
 
 /**
- * Coach applications — the public pre-vetting front door (/coaches/apply). NOT a coach
+ * Mentor applications — the public pre-vetting front door (/mentors/apply). NOT a mentor
  * profile: an applicant has no account until Aatir/Isaiah accept them and they go through
  * the existing self-serve setup, which pre-fills from this row by matching email.
  *
  * Free-text/status fields are plain `text` with app validation (see src/lib/
  * application-schema.ts) rather than pg enums — internal review data that will churn.
  */
-export const coachApplications = pgTable(
-  'coach_applications',
+export const mentorApplications = pgTable(
+  'mentor_applications',
   {
     id: uuid('id').primaryKey().defaultRandom(),
 
@@ -38,8 +38,8 @@ export const coachApplications = pgTable(
     openToSuggested: boolean('open_to_suggested').notNull(),
 
     // offer
-    coachingTypes: jsonb('coaching_types').$type<string[]>().notNull(),
-    coachingOther: text('coaching_other'),
+    mentoringTypes: jsonb('mentoring_types').$type<string[]>().notNull(),
+    mentoringOther: text('mentoring_other'),
     idealStudent: text('ideal_student'),
 
     // employer
@@ -61,5 +61,5 @@ export const coachApplications = pgTable(
     reviewedAt: timestamp('reviewed_at', { withTimezone: true, mode: 'date' }),
     reviewedBy: text('reviewed_by'),
   },
-  (t) => [index('coach_applications_status_created_idx').on(t.status, t.createdAt)],
+  (t) => [index('mentor_applications_status_created_idx').on(t.status, t.createdAt)],
 )

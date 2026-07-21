@@ -2,12 +2,12 @@ import { eq } from 'drizzle-orm'
 import Link from 'next/link'
 import { Card } from '@/components/ui/card'
 import { db } from '@/db'
-import { coachAvailabilityRules, coachOfferings, reports, users } from '@/db/schema'
+import { mentorAvailabilityRules, mentorOfferings, reports, users } from '@/db/schema'
 import { requireAdmin } from '@/lib/auth/guards'
 import { ConsoleHeader } from '@/components/console-shell'
 import { platformStats } from '@/lib/admin-stats'
-import { isCoachLive } from '@/lib/coach-publish'
-import { formatPrice } from '@/lib/coach-schema'
+import { isMentorLive } from '@/lib/mentor-publish'
+import { formatPrice } from '@/lib/mentor-schema'
 import { bookingEnabled } from '@/lib/env'
 import { NO_INDEX } from '@/lib/seo'
 
@@ -19,26 +19,26 @@ export default async function AdminHome() {
   await requireAdmin()
 
   const [profiles, activeOfferings, availabilityRules, studentCount, openReports, stats] = await Promise.all([
-    db.query.coachProfiles.findMany(),
-    db.select({ coachId: coachOfferings.coachId }).from(coachOfferings).where(eq(coachOfferings.isActive, true)),
-    db.select({ coachId: coachAvailabilityRules.coachId }).from(coachAvailabilityRules),
+    db.query.mentorProfiles.findMany(),
+    db.select({ mentorId: mentorOfferings.mentorId }).from(mentorOfferings).where(eq(mentorOfferings.isActive, true)),
+    db.select({ mentorId: mentorAvailabilityRules.mentorId }).from(mentorAvailabilityRules),
     db.$count(users, eq(users.role, 'student')),
     db.select({ id: reports.id }).from(reports).where(eq(reports.status, 'open')),
     platformStats(),
   ])
 
-  // Live-coach count via the same rule as browse. Offering + availability presence from sets.
-  const coachesWithOffering = new Set(activeOfferings.map((o) => o.coachId))
-  const coachesWithAvailability = new Set(availabilityRules.map((r) => r.coachId))
-  const liveCoaches = profiles.filter((p) =>
-    isCoachLive({
+  // Live-mentor count via the same rule as browse. Offering + availability presence from sets.
+  const mentorsWithOffering = new Set(activeOfferings.map((o) => o.mentorId))
+  const mentorsWithAvailability = new Set(availabilityRules.map((r) => r.mentorId))
+  const liveMentors = profiles.filter((p) =>
+    isMentorLive({
       isSeed: p.isSeed,
       status: p.status,
       headshotUrl: p.headshotUrl,
       currentTitle: p.currentTitle,
       bio: p.bio,
-      hasActiveOffering: coachesWithOffering.has(p.userId),
-      hasAvailability: coachesWithAvailability.has(p.userId),
+      hasActiveOffering: mentorsWithOffering.has(p.userId),
+      hasAvailability: mentorsWithAvailability.has(p.userId),
       stripePayoutsEnabled: p.stripePayoutsEnabled,
       handbookAckAt: p.handbookAckAt,
     }),
@@ -62,10 +62,10 @@ export default async function AdminHome() {
       ) : null}
 
       <div className="mt-8 grid gap-4 sm:grid-cols-3">
-        <Stat label="Live coaches" value={`${liveCoaches} / ${profiles.length}`} href="/admin/coaches" />
+        <Stat label="Live mentors" value={`${liveMentors} / ${profiles.length}`} href="/admin/mentors" />
         <Stat label="Students" value={String(studentCount)} href="/admin/students" />
-        <Stat label="Agreements signed" value={String(signed)} href="/admin/coaches" />
-        <Stat label="Sessions completed" value={String(stats.completed)} href="/admin/coaches" />
+        <Stat label="Agreements signed" value={String(signed)} href="/admin/mentors" />
+        <Stat label="Sessions completed" value={String(stats.completed)} href="/admin/mentors" />
         <Stat label="Commission earned" value={formatPrice(stats.commissionCents)} href="/admin/integrations" />
         <Stat label="Open reports" value={String(openReports.length)} href="/admin/reports" />
       </div>

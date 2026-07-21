@@ -5,10 +5,10 @@ import { userRole } from './enums'
 /**
  * Spec §3/§4.
  *
- * CONVENTION (applies to every table in this schema): all `coach_id` / `student_id`
- * columns anywhere reference `users.id`, NEVER `coach_profiles.id`. Uniform FK target;
- * session history survives a profile being rebuilt. Join to coach_profiles via
- * `coach_profiles.user_id`.
+ * CONVENTION (applies to every table in this schema): all `mentor_id` / `student_id`
+ * columns anywhere reference `users.id`, NEVER `mentor_profiles.id`. Uniform FK target;
+ * session history survives a profile being rebuilt. Join to mentor_profiles via
+ * `mentor_profiles.user_id`.
  *
  * Clerk is the source of truth for identity and role. This table is a one-way MIRROR
  * (Clerk → Neon) so we can JOIN/WHERE on role without an API call. Never write a role
@@ -43,7 +43,7 @@ export const users = pgTable(
      * Captured at signup from a referral code; immutable afterwards (enforced in the
      * app layer — Postgres has no cheap "immutable after insert" for a nullable col).
      */
-    referredByCoachId: uuid('referred_by_coach_id').references((): AnyPgColumn => users.id, {
+    referredByMentorId: uuid('referred_by_mentor_id').references((): AnyPgColumn => users.id, {
       onDelete: 'set null',
     }),
 
@@ -53,13 +53,13 @@ export const users = pgTable(
       .defaultNow()
       .$onUpdate(() => new Date()),
   },
-  (t) => [index('users_email_idx').on(t.email), index('users_referred_by_idx').on(t.referredByCoachId)],
+  (t) => [index('users_email_idx').on(t.email), index('users_referred_by_idx').on(t.referredByMentorId)],
 )
 
 export const usersRelations = relations(users, ({ one }) => ({
-  referredByCoach: one(users, {
-    fields: [users.referredByCoachId],
+  referredByMentor: one(users, {
+    fields: [users.referredByMentorId],
     references: [users.id],
-    relationName: 'referred_by_coach',
+    relationName: 'referred_by_mentor',
   }),
 }))

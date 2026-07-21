@@ -54,4 +54,4 @@ export const ACK_LABEL = 'I understand the cancellation policy.'
 /** Homepage trust block (§11 stated plainly, not euphemistically). */
 export const TRUST_BLOCK_TITLE = '24-hour cancellation'
 export const TRUST_BLOCK_BODY =
-  'Cancel or reschedule free up to 24 hours before your session. Inside 24 hours, and for no-shows, the session is non-refundable. The time was reserved for you, and your coach is paid for it.'
+  'Cancel or reschedule free up to 24 hours before your session. Inside 24 hours, and for no-shows, the session is non-refundable. The time was reserved for you, and your mentor is paid for it.'

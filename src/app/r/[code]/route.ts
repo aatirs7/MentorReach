@@ -3,7 +3,7 @@ import type { NextRequest } from 'next/server'
 import { resolveReferralCode, setReferralCookie } from '@/lib/auth/referral'
 
 /**
- * Spec §6 — a coach's referral link: /r/<CODE>.
+ * Spec §6 — a mentor's referral link: /r/<CODE>.
  *
  * Validates the code server-side and drops the referral cookie, then sends the visitor
  * to sign-up. The binding itself happens on their first authenticated request
@@ -17,9 +17,9 @@ import { resolveReferralCode, setReferralCookie } from '@/lib/auth/referral'
 export async function GET(_req: NextRequest, ctx: { params: Promise<{ code: string }> }) {
   const { code } = await ctx.params
 
-  const coachUserId = await resolveReferralCode(code)
+  const mentorUserId = await resolveReferralCode(code)
 
-  if (coachUserId) await setReferralCookie(code)
+  if (mentorUserId) await setReferralCookie(code)
 
   redirect('/sign-up')
 }

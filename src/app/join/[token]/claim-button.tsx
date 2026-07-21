@@ -21,7 +21,7 @@ export function ClaimButton({ token }: { token: string }) {
           })
         }
       >
-        {pending ? 'Setting up…' : 'Continue as coach'}
+        {pending ? 'Setting up…' : 'Continue as mentor'}
       </Button>
       {error ? (
         <p role="alert" className="mt-4 text-sm text-destructive">

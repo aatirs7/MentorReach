@@ -4,34 +4,34 @@ import { clerkClient } from '@clerk/nextjs/server'
 import { eq } from 'drizzle-orm'
 import { revalidatePath } from 'next/cache'
 import { db } from '@/db'
-import { coachProfiles, reports, users } from '@/db/schema'
+import { mentorProfiles, reports, users } from '@/db/schema'
 import { requireAdmin } from '@/lib/auth/guards'
 
 export type AdminState = { error?: string; success?: string }
 
 /**
- * Suspend or reinstate a coach — the ONLY admin lever over a coach's visibility now that
+ * Suspend or reinstate a mentor — the ONLY admin lever over a mentor's visibility now that
  * there's no approval gate. `suspended` takes them out of browse and off the booking path
  * immediately; reinstating sets `active`, after which live-ness is once again computed
- * from their completed checklist (src/lib/coach-publish.ts). Session history is untouched.
+ * from their completed checklist (src/lib/mentor-publish.ts). Session history is untouched.
  */
-export async function setCoachStatus(_prev: AdminState, formData: FormData): Promise<AdminState> {
+export async function setMentorStatus(_prev: AdminState, formData: FormData): Promise<AdminState> {
   await requireAdmin()
 
   const profileId = formData.get('profileId')
   const suspend = formData.get('suspend') === 'true'
 
-  if (typeof profileId !== 'string') return { error: 'Missing coach.' }
+  if (typeof profileId !== 'string') return { error: 'Missing mentor.' }
 
   await db
-    .update(coachProfiles)
+    .update(mentorProfiles)
     // 'approved' here just means "not suspended" — the approval concept is gone.
     .set({ status: suspend ? 'suspended' : 'approved' })
-    .where(eq(coachProfiles.id, profileId))
+    .where(eq(mentorProfiles.id, profileId))
 
-  revalidatePath('/admin/coaches')
+  revalidatePath('/admin/mentors')
 
-  return { success: suspend ? 'Coach suspended.' : 'Coach reinstated.' }
+  return { success: suspend ? 'Mentor suspended.' : 'Mentor reinstated.' }
 }
 
 /**
@@ -41,8 +41,8 @@ export async function setCoachStatus(_prev: AdminState, formData: FormData): Pro
  * banning there kills the session immediately and blocks sign-in. Flipping a column in
  * our mirror would leave the user perfectly able to log in and keep going.
  *
- * A banned coach is also taken out of browse, since a suspended profile status and a
- * banned account are different levers — this sets both for coaches.
+ * A banned mentor is also taken out of browse, since a suspended profile status and a
+ * banned account are different levers — this sets both for mentors.
  */
 export async function setUserSuspension(
   _prev: AdminState,
@@ -72,12 +72,12 @@ export async function setUserSuspension(
     return { error: 'Could not reach Clerk. Nothing was changed.' }
   }
 
-  // Keep the coach's visibility in step with their account state.
-  if (target.role === 'coach') {
+  // Keep the mentor's visibility in step with their account state.
+  if (target.role === 'mentor') {
     await db
-      .update(coachProfiles)
+      .update(mentorProfiles)
       .set({ status: suspend ? 'suspended' : 'pending' })
-      .where(eq(coachProfiles.userId, target.id))
+      .where(eq(mentorProfiles.userId, target.id))
   }
 
   revalidatePath('/admin/users')
@@ -85,10 +85,10 @@ export async function setUserSuspension(
   return {
     success: suspend
       ? `${target.fullName ?? target.email} is suspended and signed out.${
-          target.role === 'coach' ? ' Their profile is no longer bookable.' : ''
+          target.role === 'mentor' ? ' Their profile is no longer bookable.' : ''
         }`
       : `${target.fullName ?? target.email} can sign in again.${
-          target.role === 'coach' ? ' Their profile is back to pending review.' : ''
+          target.role === 'mentor' ? ' Their profile is back to pending review.' : ''
         }`,
   }
 }

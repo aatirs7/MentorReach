@@ -1,44 +1,44 @@
 import { desc, eq, inArray, or } from 'drizzle-orm'
 import type { ReactNode } from 'react'
 import { SessionCard, type SessionView } from './session-card'
-import { CoachShell } from '@/components/coach-shell'
+import { MentorShell } from '@/components/mentor-shell'
 import { Card } from '@/components/ui/card'
 import { db } from '@/db'
-import { coachOfferings, sessionNotes, sessions, users } from '@/db/schema'
+import { mentorOfferings, sessionNotes, sessions, users } from '@/db/schema'
 import { requireUser } from '@/lib/auth/guards'
-import { readViewAsCoachId } from '@/lib/auth/view-as'
+import { readViewAsMentorId } from '@/lib/auth/view-as'
 import { isTerminal, type SessionStatus } from '@/lib/sessions'
 import { NO_INDEX } from '@/lib/seo'
 
 export const metadata = { title: 'Your sessions', ...NO_INDEX }
 
 /**
- * Spec §12 — the Coaching Sessions dashboard, for BOTH roles: upcoming + past, with
+ * Spec §12 — the Mentoring Sessions dashboard, for BOTH roles: upcoming + past, with
  * status. One page rather than two: the data is the same shape and only the viewer's
  * side of it changes.
  *
- * For coaches this is one tab of their workspace, so it renders inside the coach sidebar
- * shell. Students see it standalone. When an admin is previewing a coach (view-as), we
- * resolve that coach's id — same rule as requireCoach() — so the sidebar shows AND the
- * sessions are the coach's, not the admin's; the cookie is honored only after auth
+ * For mentors this is one tab of their workspace, so it renders inside the mentor sidebar
+ * shell. Students see it standalone. When an admin is previewing a mentor (view-as), we
+ * resolve that mentor's id — same rule as requireMentor() — so the sidebar shows AND the
+ * sessions are the mentor's, not the admin's; the cookie is honored only after auth
  * resolves to an admin here.
  */
 export default async function SessionsPage() {
   const me = await requireUser()
 
   let effectiveUserId = me.id
-  let isCoach = me.role === 'coach'
+  let isMentor = me.role === 'mentor'
   if (me.role === 'admin') {
-    const targetId = await readViewAsCoachId()
+    const targetId = await readViewAsMentorId()
     if (targetId) {
       effectiveUserId = targetId
-      isCoach = true
+      isMentor = true
     }
   }
-  const viewerRole: 'student' | 'coach' = isCoach ? 'coach' : 'student'
+  const viewerRole: 'student' | 'mentor' = isMentor ? 'mentor' : 'student'
 
   const rows = await db.query.sessions.findMany({
-    where: or(eq(sessions.studentId, effectiveUserId), eq(sessions.coachId, effectiveUserId)),
+    where: or(eq(sessions.studentId, effectiveUserId), eq(sessions.mentorId, effectiveUserId)),
     orderBy: [desc(sessions.scheduledStart), desc(sessions.createdAt)],
   })
 
@@ -51,9 +51,9 @@ export default async function SessionsPage() {
         <Card className="mt-10 border-line/20 p-10 text-center">
           <p className="text-lg">No sessions yet.</p>
           <p className="mt-2 text-sm text-slate">
-            {isCoach
+            {isMentor
               ? 'Once a student books you, it’ll show up here.'
-              : 'Browse coaches and book your first session.'}
+              : 'Browse mentors and book your first session.'}
           </p>
         </Card>
       </>
@@ -61,14 +61,14 @@ export default async function SessionsPage() {
   } else {
     // Batch the lookups rather than N+1-ing per card.
     const counterpartyIds = [
-      ...new Set(rows.map((r) => (isCoach ? r.studentId : r.coachId))),
+      ...new Set(rows.map((r) => (isMentor ? r.studentId : r.mentorId))),
     ]
     const offeringIds = [...new Set(rows.map((r) => r.offeringId))]
     const sessionIds = rows.map((r) => r.id)
 
     const [people, offerings, notes] = await Promise.all([
       db.query.users.findMany({ where: inArray(users.id, counterpartyIds) }),
-      db.query.coachOfferings.findMany({ where: inArray(coachOfferings.id, offeringIds) }),
+      db.query.mentorOfferings.findMany({ where: inArray(mentorOfferings.id, offeringIds) }),
       db.query.sessionNotes.findMany({
         where: inArray(sessionNotes.sessionId, sessionIds),
         orderBy: [desc(sessionNotes.createdAt)],
@@ -79,16 +79,16 @@ export default async function SessionsPage() {
     const offeringById = new Map(offerings.map((o) => [o.id, o]))
 
     const views: SessionView[] = rows.map((r) => {
-      const counterpartyId = isCoach ? r.studentId : r.coachId
+      const counterpartyId = isMentor ? r.studentId : r.mentorId
       return {
         id: r.id,
         status: r.status as SessionStatus,
         scheduledStart: r.scheduledStart?.toISOString() ?? null,
         lengthMinutes: offeringById.get(r.offeringId)?.lengthMinutes ?? 0,
         amountCents: r.amountCents,
-        payoutCents: r.coachPayoutCents,
+        payoutCents: r.mentorPayoutCents,
         counterpartyName:
-          personById.get(counterpartyId)?.fullName ?? (isCoach ? 'Your student' : 'Your coach'),
+          personById.get(counterpartyId)?.fullName ?? (isMentor ? 'Your student' : 'Your mentor'),
         zoomJoinUrl: r.zoomJoinUrl,
         notes: notes
           .filter((n) => n.sessionId === r.id)
@@ -130,25 +130,25 @@ export default async function SessionsPage() {
     )
   }
 
-  // Coaches get their sessions as a tab inside the workspace sidebar; students standalone.
-  if (isCoach) {
+  // Mentors get their sessions as a tab inside the workspace sidebar; students standalone.
+  if (isMentor) {
     return (
-      <CoachShell banner={null}>
+      <MentorShell banner={null}>
         <main className="mx-auto w-full max-w-3xl flex-1">{body}</main>
-      </CoachShell>
+      </MentorShell>
     )
   }
 
   return <main className="mx-auto w-full max-w-3xl flex-1 px-6 py-14">{body}</main>
 }
 
-function Header({ viewerRole }: { viewerRole: 'student' | 'coach' }) {
+function Header({ viewerRole }: { viewerRole: 'student' | 'mentor' }) {
   return (
     <div className="text-center">
-      <p className="label-mono">Coaching sessions</p>
+      <p className="label-mono">Mentoring sessions</p>
       <h1 className="mt-2 text-3xl sm:text-4xl">Your sessions</h1>
       <p className="mx-auto mt-2 max-w-prose text-slate">
-        {viewerRole === 'coach'
+        {viewerRole === 'mentor'
           ? 'Everything students have booked with you.'
           : 'Everything you’ve booked. Free cancellation up to 24 hours before.'}
       </p>

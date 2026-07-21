@@ -12,7 +12,7 @@ export const metadata = { title: 'A few questions', ...NO_INDEX }
 export default async function SurveyPage() {
   const user = await requireUser()
 
-  if (user.role === 'coach') redirect('/coach')
+  if (user.role === 'mentor') redirect('/mentor')
   if (user.role === 'admin') redirect('/admin')
 
   const existing = await getMySurvey()
@@ -23,7 +23,7 @@ export default async function SurveyPage() {
         <p className="label-mono">Step 2 of 2</p>
         <h1 className="mt-3 text-4xl">Tell us where you&rsquo;re headed</h1>
         <p className="mx-auto mt-3 max-w-prose text-slate">
-        Ten quick questions. This is how we match you with coaches who&rsquo;ve actually done
+        Ten quick questions. This is how we match you with mentors who&rsquo;ve actually done
           the thing you&rsquo;re trying to do, and it&rsquo;s the last step before you can browse.
         </p>
       </div>

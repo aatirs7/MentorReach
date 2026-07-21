@@ -54,7 +54,7 @@ export async function submitReport(_prev: ReportState, formData: FormData): Prom
   let validSessionId: string | null = null
   if (typeof sessionId === 'string' && sessionId) {
     const session = await db.query.sessions.findFirst({ where: eq(sessions.id, sessionId) })
-    if (session && (session.studentId === reporter.id || session.coachId === reporter.id)) {
+    if (session && (session.studentId === reporter.id || session.mentorId === reporter.id)) {
       validSessionId = session.id
     }
   }

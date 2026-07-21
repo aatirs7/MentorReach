@@ -6,7 +6,7 @@
 export const OPS_CATEGORIES = [
   'Business & Legal',
   'Website & Product',
-  'Founding Coaches',
+  'Founding Mentors',
   'Marketing & Social',
 ] as const
 

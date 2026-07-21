@@ -2,10 +2,10 @@ import { eq } from 'drizzle-orm'
 import type { NextRequest } from 'next/server'
 import type Stripe from 'stripe'
 import { db } from '@/db'
-import { coachOfferings, coachProfiles, sessions, users } from '@/db/schema'
+import { mentorOfferings, mentorProfiles, sessions, users } from '@/db/schema'
 import { confirmBookingFromCheckout } from '@/lib/booking'
 import { firstName } from '@/lib/cancel'
-import { formatPrice } from '@/lib/coach-schema'
+import { formatPrice } from '@/lib/mentor-schema'
 import { BookingConfirmedEmail, PaymentReceivedEmail } from '@/lib/email/templates'
 import { env } from '@/lib/env'
 import { notify } from '@/lib/notifications'
@@ -74,7 +74,7 @@ async function handleCheckoutCompleted(checkout: Stripe.Checkout.Session) {
   if (checkout.payment_status !== 'paid') return
 
   const md = checkout.metadata
-  if (!md?.linkId || !md.offeringId || !md.coachId || !md.studentId) {
+  if (!md?.linkId || !md.offeringId || !md.mentorId || !md.studentId) {
     console.error(`[stripe-webhook] checkout ${checkout.id} is missing metadata`, md)
     return
   }
@@ -99,7 +99,7 @@ async function handleCheckoutCompleted(checkout: Stripe.Checkout.Session) {
     amountCents: checkout.amount_total ?? 0,
     linkId: md.linkId,
     offeringId: md.offeringId,
-    coachId: md.coachId,
+    mentorId: md.mentorId,
     studentId: md.studentId,
     policyAckAt,
     slotStart,
@@ -110,19 +110,19 @@ async function handleCheckoutCompleted(checkout: Stripe.Checkout.Session) {
   // A retry — the session (and any Zoom meeting/emails) already happened.
   if (!created) return
 
-  const [offering, profile, coach, student] = await Promise.all([
-    db.query.coachOfferings.findFirst({ where: eq(coachOfferings.id, session.offeringId) }),
-    db.query.coachProfiles.findFirst({ where: eq(coachProfiles.userId, session.coachId) }),
-    db.query.users.findFirst({ where: eq(users.id, session.coachId) }),
+  const [offering, profile, mentor, student] = await Promise.all([
+    db.query.mentorOfferings.findFirst({ where: eq(mentorOfferings.id, session.offeringId) }),
+    db.query.mentorProfiles.findFirst({ where: eq(mentorProfiles.userId, session.mentorId) }),
+    db.query.users.findFirst({ where: eq(users.id, session.mentorId) }),
     db.query.users.findFirst({ where: eq(users.id, session.studentId) }),
   ])
   if (!student) return
 
-  const coachName = coach?.fullName ?? 'your coach'
+  const mentorName = mentor?.fullName ?? 'your mentor'
 
   // Fallback path: the slot was taken during checkout. Ask the student to pick another.
   if (!booked || !session.scheduledStart) {
-    const scheduleUrl = `${env.NEXT_PUBLIC_APP_URL}/coaches/${session.coachId}`
+    const scheduleUrl = `${env.NEXT_PUBLIC_APP_URL}/mentors/${session.mentorId}`
     await notify({
       userId: student.id,
       type: 'payment_received',
@@ -132,7 +132,7 @@ async function handleCheckoutCompleted(checkout: Stripe.Checkout.Session) {
         subject: 'Payment received: pick your time',
         react: PaymentReceivedEmail({
           studentName: firstName(student.fullName),
-          coachName,
+          mentorName,
           amount: formatPrice(session.amountCents),
           scheduleUrl,
         }),
@@ -149,7 +149,7 @@ async function handleCheckoutCompleted(checkout: Stripe.Checkout.Session) {
   if (zoomConfigured()) {
     try {
       const meeting = await createMeeting({
-        topic: `MentorReach session — ${coachName}`,
+        topic: `MentorReach session — ${mentorName}`,
         startIso: session.scheduledStart.toISOString(),
         durationMin: lengthMinutes,
         timezone: tz,
@@ -168,17 +168,17 @@ async function handleCheckoutCompleted(checkout: Stripe.Checkout.Session) {
   const deadline = formatInTz(new Date(session.scheduledStart.getTime() - 24 * 3600_000), tz)
   const manageUrl = `${env.NEXT_PUBLIC_APP_URL}/sessions`
 
-  // Confirm to both parties. The student sees what they paid; the coach sees their payout.
+  // Confirm to both parties. The student sees what they paid; the mentor sees their payout.
   await notify({
     userId: student.id,
     type: 'booking_confirmed',
     payload: { sessionId: session.id },
     email: {
       to: student.email,
-      subject: `Your session with ${coachName} is booked`,
+      subject: `Your session with ${mentorName} is booked`,
       react: BookingConfirmedEmail({
         studentName: firstName(student.fullName),
-        coachName,
+        mentorName,
         lengthMinutes,
         startsAt,
         amount: formatPrice(session.amountCents),
@@ -189,20 +189,20 @@ async function handleCheckoutCompleted(checkout: Stripe.Checkout.Session) {
     },
   })
 
-  if (coach) {
+  if (mentor) {
     await notify({
-      userId: coach.id,
+      userId: mentor.id,
       type: 'booking_confirmed',
       payload: { sessionId: session.id },
       email: {
-        to: coach.email,
+        to: mentor.email,
         subject: `New session booked with ${student.fullName ?? 'a student'}`,
         react: BookingConfirmedEmail({
-          studentName: firstName(coach.fullName),
-          coachName: student.fullName ?? 'your student',
+          studentName: firstName(mentor.fullName),
+          mentorName: student.fullName ?? 'your student',
           lengthMinutes,
           startsAt,
-          amount: formatPrice(session.coachPayoutCents),
+          amount: formatPrice(session.mentorPayoutCents),
           manageUrl,
           cancellationDeadline: deadline,
           joinUrl,
@@ -255,15 +255,15 @@ async function handleChargeRefunded(charge: Stripe.Charge) {
 /**
  * Spec §10 — Express onboarding progress.
  *
- * A coach can only be paid once Stripe reports both charges and payouts enabled. We
- * MIRROR that into coach_profiles.stripe_payouts_enabled so the "is this coach live?"
- * check (and the publish checklist) stays a pure DB read — we can't call Stripe per coach
- * inside a browse query. This is also what auto-publishes a coach the moment their Stripe
+ * A mentor can only be paid once Stripe reports both charges and payouts enabled. We
+ * MIRROR that into mentor_profiles.stripe_payouts_enabled so the "is this mentor live?"
+ * check (and the publish checklist) stays a pure DB read — we can't call Stripe per mentor
+ * inside a browse query. This is also what auto-publishes a mentor the moment their Stripe
  * onboarding finishes, with no admin step.
  */
 async function handleAccountUpdated(account: Stripe.Account) {
-  const profile = await db.query.coachProfiles.findFirst({
-    where: eq(coachProfiles.stripeAccountId, account.id),
+  const profile = await db.query.mentorProfiles.findFirst({
+    where: eq(mentorProfiles.stripeAccountId, account.id),
   })
 
   if (!profile) return
@@ -272,8 +272,8 @@ async function handleAccountUpdated(account: Stripe.Account) {
 
   if (ready !== profile.stripePayoutsEnabled) {
     await db
-      .update(coachProfiles)
+      .update(mentorProfiles)
       .set({ stripePayoutsEnabled: ready })
-      .where(eq(coachProfiles.id, profile.id))
+      .where(eq(mentorProfiles.id, profile.id))
   }
 }

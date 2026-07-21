@@ -37,7 +37,7 @@ export async function ensureUser(): Promise<DbUser | null> {
 
   // Fast path: mirrored, and the referral question is already settled. The webhook keeps
   // email/name/role fresh, so don't pay a Clerk round-trip.
-  if (existing?.referredByCoachId) return existing
+  if (existing?.referredByMentorId) return existing
 
   const pendingCode = await readReferralCookie()
 
@@ -59,16 +59,16 @@ export async function ensureUser(): Promise<DbUser | null> {
   // which flows back through the webhook.
   const role = (clerkUser.publicMetadata?.role as Role | undefined) ?? 'student'
 
-  let referredByCoachId: string | null = null
+  let referredByMentorId: string | null = null
   if (pendingCode) {
-    const coachUserId = await resolveReferralCode(pendingCode)
-    // A coach cannot refer themselves into their own 20% tier.
-    referredByCoachId = coachUserId && coachUserId !== existing?.id ? coachUserId : null
+    const mentorUserId = await resolveReferralCode(pendingCode)
+    // A mentor cannot refer themselves into their own 20% tier.
+    referredByMentorId = mentorUserId && mentorUserId !== existing?.id ? mentorUserId : null
   }
 
   const [row] = await db
     .insert(users)
-    .values({ clerkId: userId, email, fullName, role, referredByCoachId })
+    .values({ clerkId: userId, email, fullName, role, referredByMentorId })
     .onConflictDoUpdate({
       target: users.clerkId,
       set: {
@@ -81,7 +81,7 @@ export async function ensureUser(): Promise<DbUser | null> {
          * a webhook that inserted first without one — can never overwrite an established
          * referral.
          */
-        referredByCoachId: sql`COALESCE(${users.referredByCoachId}, EXCLUDED.referred_by_coach_id)`,
+        referredByMentorId: sql`COALESCE(${users.referredByMentorId}, EXCLUDED.referred_by_mentor_id)`,
       },
     })
     .returning()

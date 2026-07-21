@@ -89,7 +89,10 @@ describe('legal documents', () => {
     }
   })
 
-  test('the mentor rename left no "coach" behind', () => {
+  // The regex below is written as [Cc]oach deliberately: the character class breaks the
+  // literal string, so a global find-and-replace of the old term cannot silently rewrite
+  // the very assertion that guards against it.
+  test('the rename left no trace of the old term behind', () => {
     for (const doc of allDocuments()) {
       const hits = doc.content.match(/\b[Cc]oach\w*/g) ?? []
       assert.deepEqual(hits, [], `${doc.key} still says: ${[...new Set(hits)].join(', ')}`)

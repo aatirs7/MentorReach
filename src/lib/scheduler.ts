@@ -4,10 +4,10 @@ import { DateTime } from 'luxon'
  * Native slot generation — pure, no I/O (like src/lib/commission.ts), so it's unit-testable
  * and can't disagree with itself between the picker and the booking guard.
  *
- * A coach declares recurring weekly hours in their own timezone plus blackout dates; we
+ * A mentor declares recurring weekly hours in their own timezone plus blackout dates; we
  * generate bookable slots of a given length, minus their existing bookings/holds, minus a
  * buffer, respecting a minimum notice and an optional daily cap. Everything crossing the
- * I/O boundary is a UTC `Date` (a real instant); wall-clock math happens in the coach's
+ * I/O boundary is a UTC `Date` (a real instant); wall-clock math happens in the mentor's
  * zone via luxon so DST is handled correctly.
  */
 
@@ -24,7 +24,7 @@ export type BusyInterval = { start: Date; end: Date }
 
 export type SlotQuery = {
   rules: AvailabilityRule[]
-  /** Local calendar dates (YYYY-MM-DD, coach timezone) the coach is fully unavailable. */
+  /** Local calendar dates (YYYY-MM-DD, mentor timezone) the mentor is fully unavailable. */
   blackouts: string[]
   busy: BusyInterval[]
   offeringLengthMin: number

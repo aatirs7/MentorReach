@@ -2,9 +2,9 @@ import 'server-only'
 import { eq } from 'drizzle-orm'
 import { redirect } from 'next/navigation'
 import { db } from '@/db'
-import { coachProfiles, studentSurveys, users } from '@/db/schema'
+import { mentorProfiles, studentSurveys, users } from '@/db/schema'
 import { type DbUser, ensureUser } from './ensure-user'
-import { readViewAsCoachId } from './view-as'
+import { readViewAsMentorId } from './view-as'
 
 /**
  * Spec §3 gating, enforced AT THE RESOURCE rather than in proxy.ts.
@@ -46,65 +46,65 @@ export async function requireStudent(): Promise<DbUser> {
   return user
 }
 
-export type CoachContext = {
+export type MentorContext = {
   user: DbUser
-  profile: typeof coachProfiles.$inferSelect
-  /** True when an admin is previewing this coach read-only (see src/lib/auth/view-as.ts). */
+  profile: typeof mentorProfiles.$inferSelect
+  /** True when an admin is previewing this mentor read-only (see src/lib/auth/view-as.ts). */
   viewAs?: boolean
 }
 
 /**
- * A coach with a profile. Any coach reaches their own dashboard regardless of whether
+ * A mentor with a profile. Any mentor reaches their own dashboard regardless of whether
  * they're published yet — that's where the setup checklist lives. Live-ness (published
  * and bookable) is computed from completeness, not stored as a role gate; see
- * src/lib/coach-publish.ts.
+ * src/lib/mentor-publish.ts.
  *
- * ADMIN "VIEW AS COACH": when the requester is an admin AND a view-as cookie is set to a
- * real coach, this returns THAT coach's user + profile with `viewAs: true`, so every coach
- * page renders exactly what the coach sees. The cookie is trusted only after auth resolves
+ * ADMIN "VIEW AS MENTOR": when the requester is an admin AND a view-as cookie is set to a
+ * real mentor, this returns THAT mentor's user + profile with `viewAs: true`, so every mentor
+ * page renders exactly what the mentor sees. The cookie is trusted only after auth resolves
  * to an admin here, so a non-admin's cookie is inert. Writes are refused separately.
  */
-export async function requireCoach(): Promise<CoachContext> {
+export async function requireMentor(): Promise<MentorContext> {
   const user = await requireUser()
 
   if (user.role === 'admin') {
-    const targetId = await readViewAsCoachId()
+    const targetId = await readViewAsMentorId()
     if (targetId) {
       const [target, profile] = await Promise.all([
         db.query.users.findFirst({ where: eq(users.id, targetId) }),
-        db.query.coachProfiles.findFirst({ where: eq(coachProfiles.userId, targetId) }),
+        db.query.mentorProfiles.findFirst({ where: eq(mentorProfiles.userId, targetId) }),
       ])
       if (target && profile) return { user: target, profile, viewAs: true }
     }
-    // Admin without a valid view-as target has no coaching surface of their own.
-    redirect('/admin/coaches')
+    // Admin without a valid view-as target has no mentoring surface of their own.
+    redirect('/admin/mentors')
   }
 
-  if (user.role !== 'coach') redirect('/')
+  if (user.role !== 'mentor') redirect('/')
 
-  const profile = await db.query.coachProfiles.findFirst({
-    where: eq(coachProfiles.userId, user.id),
+  const profile = await db.query.mentorProfiles.findFirst({
+    where: eq(mentorProfiles.userId, user.id),
   })
 
-  if (!profile) redirect('/coach/onboarding')
+  if (!profile) redirect('/mentor/onboarding')
 
   return { user, profile }
 }
 
 /**
- * Is the current admin previewing a coach read-only? Used by coach mutations to refuse
+ * Is the current admin previewing a mentor read-only? Used by mentor mutations to refuse
  * politely. Only ever true for an admin with a view-as cookie set.
  */
-export async function viewingAsCoach(): Promise<boolean> {
+export async function viewingAsMentor(): Promise<boolean> {
   const user = await ensureUser()
   if (!user || user.role !== 'admin') return false
-  return Boolean(await readViewAsCoachId())
+  return Boolean(await readViewAsMentorId())
 }
 
-/** A coach who isn't suspended. Suspension is the only admin kill switch. */
-export async function requireActiveCoach(): Promise<CoachContext> {
-  const ctx = await requireCoach()
-  if (ctx.profile.status === 'suspended') redirect('/coach')
+/** A mentor who isn't suspended. Suspension is the only admin kill switch. */
+export async function requireActiveMentor(): Promise<MentorContext> {
+  const ctx = await requireMentor()
+  if (ctx.profile.status === 'suspended') redirect('/mentor')
   return ctx
 }
 
@@ -128,9 +128,9 @@ export async function hasCompletedSurvey(userId: string): Promise<boolean> {
  *
  * DELIBERATE DEVIATION from spec §2.3/§3, recorded in docs/spec-coverage.md:
  * the survey gates BOOKING, not BROWSING. §3 says middleware "blocks students without a
- * completed survey", which taken literally puts a sign-in wall in front of the coach
+ * completed survey", which taken literally puts a sign-in wall in front of the mentor
  * list — the one page the homepage exists to send people to. That kills top-of-funnel
- * and makes every coach profile invisible to search engines, for no benefit: reading a
+ * and makes every mentor profile invisible to search engines, for no benefit: reading a
  * public profile costs nothing and reveals nothing.
  *
  * The rule's actual purpose is that we know who a student is before they transact, and
@@ -158,14 +158,14 @@ export async function bookingGate(): Promise<BookingGate> {
     }
   }
 
-  // Admins can transact for testing; coaches booking coaches isn't a flow we support.
-  if (user.role === 'coach') {
+  // Admins can transact for testing; mentors booking mentors isn't a flow we support.
+  if (user.role === 'mentor') {
     return {
       canBook: false,
       reason: 'not_a_student',
-      href: '/coach',
-      cta: 'Go to your coaching',
-      message: 'You’re signed in as a coach, so booking isn’t available on this account.',
+      href: '/mentor',
+      cta: 'Go to your mentoring',
+      message: 'You’re signed in as a mentor, so booking isn’t available on this account.',
     }
   }
 

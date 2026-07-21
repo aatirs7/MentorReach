@@ -1,6 +1,6 @@
 import { z } from 'zod'
 
-/** Coach-application option sets (spec sections 2–6). */
+/** Mentor-application option sets (spec sections 2–6). */
 export const APP_FIELDS = [
   'Financial Services',
   'Technology',
@@ -29,7 +29,7 @@ export const AVAIL_DAYS = [
   'Sunday',
 ] as const
 
-export const COACHING_TYPES = [
+export const MENTORING_TYPES = [
   'Resume/CV review',
   'Behavioral interview prep',
   'Technical interview prep',
@@ -88,8 +88,8 @@ export const applicationSchema = z
     rate60: z.string().trim().max(60).optional().or(z.literal('')),
     openToSuggested: z.enum(['yes', 'no']),
 
-    coachingTypes: z.array(z.enum(COACHING_TYPES)).min(1, 'Pick at least one'),
-    coachingOther: z.string().trim().max(300).optional().or(z.literal('')),
+    mentoringTypes: z.array(z.enum(MENTORING_TYPES)).min(1, 'Pick at least one'),
+    mentoringOther: z.string().trim().max(300).optional().or(z.literal('')),
     idealStudent: z.string().trim().max(1000).optional().or(z.literal('')),
 
     employerConcerns: z.enum(['no', 'yes', 'unsure']),
@@ -106,8 +106,8 @@ export const applicationSchema = z
     if (v.field === 'Other' && !v.fieldOther) {
       ctx.addIssue({ code: 'custom', path: ['fieldOther'], message: 'Tell us your field' })
     }
-    if (v.coachingTypes.includes('Other') && !v.coachingOther) {
-      ctx.addIssue({ code: 'custom', path: ['coachingOther'], message: 'Tell us what else' })
+    if (v.mentoringTypes.includes('Other') && !v.mentoringOther) {
+      ctx.addIssue({ code: 'custom', path: ['mentoringOther'], message: 'Tell us what else' })
     }
     if (v.startTiming === 'other' && !v.startOther) {
       ctx.addIssue({ code: 'custom', path: ['startOther'], message: 'Please enter a date' })

@@ -260,7 +260,7 @@ export function SurveyForm({ existing }: { existing: Existing }) {
           </p>
         ) : null}
         <Button type="submit" size="lg" disabled={pending}>
-          {pending ? 'Saving…' : 'Finish and browse coaches'}
+          {pending ? 'Saving…' : 'Finish and browse mentors'}
         </Button>
       </div>
     </form>

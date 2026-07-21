@@ -2,12 +2,12 @@ import assert from 'node:assert/strict'
 import { describe, it } from 'node:test'
 import { isPlaceholderImage, resolveHeadshot, seedHeadshotUrl } from './headshot'
 
-const REAL_PHOTO = 'https://images.example.com/coaches/maya.jpg'
+const REAL_PHOTO = 'https://images.example.com/mentors/maya.jpg'
 const FAKE_FACE = 'https://i.pravatar.cc/400?u=abc'
 
 describe('resolveHeadshot — the placeholder guardrail', () => {
-  it('NEVER renders a generated face on a real coach profile', () => {
-    // The whole point. The site tells students every coach is verified against their
+  it('NEVER renders a generated face on a real mentor profile', () => {
+    // The whole point. The site tells students every mentor is verified against their
     // employer; a stock face on such a profile makes that claim false.
     const r = resolveHeadshot({ headshotUrl: FAKE_FACE, isSeed: false })
     assert.deepEqual(r, { kind: 'initials', reason: 'placeholder-on-real-profile' })
@@ -36,7 +36,7 @@ describe('resolveHeadshot — the placeholder guardrail', () => {
     })
   })
 
-  it('renders a real coach’s own uploaded photo', () => {
+  it('renders a real mentor’s own uploaded photo', () => {
     assert.deepEqual(resolveHeadshot({ headshotUrl: REAL_PHOTO, isSeed: false }), {
       kind: 'image',
       url: REAL_PHOTO,
@@ -64,16 +64,16 @@ describe('resolveHeadshot — the placeholder guardrail', () => {
 describe('isPlaceholderImage', () => {
   it('does not flag a legitimate host that merely contains a placeholder name', () => {
     // "mypicsum.photos.example.com" is not picsum.photos. Substring matching would be a
-    // bug in the other direction: refusing a real coach's real photo.
+    // bug in the other direction: refusing a real mentor's real photo.
     assert.equal(isPlaceholderImage('https://mypicsum.photos.example.com/a.jpg'), false)
     assert.equal(isPlaceholderImage('https://images.example.com/pravatar.cc/a.jpg'), false)
   })
 })
 
 describe('seedHeadshotUrl', () => {
-  it('is deterministic: same coach, same face', () => {
-    assert.equal(seedHeadshotUrl('coach-1'), seedHeadshotUrl('coach-1'))
-    assert.notEqual(seedHeadshotUrl('coach-1'), seedHeadshotUrl('coach-2'))
+  it('is deterministic: same mentor, same face', () => {
+    assert.equal(seedHeadshotUrl('mentor-1'), seedHeadshotUrl('mentor-1'))
+    assert.notEqual(seedHeadshotUrl('mentor-1'), seedHeadshotUrl('mentor-2'))
   })
 
   it('produces a URL the guardrail recognises as a placeholder', () => {

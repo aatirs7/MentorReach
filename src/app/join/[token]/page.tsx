@@ -4,11 +4,11 @@ import { ClaimButton } from './claim-button'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { db } from '@/db'
-import { coachInvites } from '@/db/schema'
+import { mentorInvites } from '@/db/schema'
 import { ensureUser } from '@/lib/auth/ensure-user'
 import { NO_INDEX } from '@/lib/seo'
 
-export const metadata = { title: 'Your coach invite', ...NO_INDEX }
+export const metadata = { title: 'Your mentor invite', ...NO_INDEX }
 export const dynamic = 'force-dynamic'
 
 /** Kept out of the component body so the render stays pure (the authoritative expiry check
@@ -19,14 +19,14 @@ function isExpired(expiresAt: Date | null): boolean {
 }
 
 /**
- * Coach invite landing (/join/<token>). The token is the capability: it's unguessable and
+ * Mentor invite landing (/join/<token>). The token is the capability: it's unguessable and
  * carries no data in the URL. Signed-out visitors are sent to sign-up/in with a redirect
- * back here; signed-in visitors claim it, which makes them a coach and starts onboarding.
+ * back here; signed-in visitors claim it, which makes them a mentor and starts onboarding.
  */
 export default async function JoinPage({ params }: { params: Promise<{ token: string }> }) {
   const { token } = await params
 
-  const invite = await db.query.coachInvites.findFirst({ where: eq(coachInvites.token, token) })
+  const invite = await db.query.mentorInvites.findFirst({ where: eq(mentorInvites.token, token) })
 
   const invalid = !invite || invite.status === 'revoked' || isExpired(invite.expiresAt)
 
@@ -77,7 +77,7 @@ export default async function JoinPage({ params }: { params: Promise<{ token: st
         {greeting ? `Welcome, ${greeting}` : 'Welcome to MentorReach'}
       </h1>
       <p className="mx-auto mt-4 max-w-prose text-slate">
-        You&rsquo;ve been invited to coach on MentorReach. We&rsquo;ll set you up with a profile,
+        You&rsquo;ve been invited to mentor on MentorReach. We&rsquo;ll set you up with a profile,
         your rates, a calendar, and payouts — about ten minutes, and your profile goes live
         automatically once it&rsquo;s complete.
       </p>

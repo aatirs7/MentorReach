@@ -11,13 +11,13 @@ import { deleteMeeting, zoomConfigured } from './zoom'
 /**
  * Spec §10/§11 — cancellation and refund.
  *
- * The single implementation of the cancel path (student/coach canceling in-app), so the
+ * The single implementation of the cancel path (student/mentor canceling in-app), so the
  * policy can't drift. Deleting the Zoom meeting frees nothing on our side — the slot frees
  * automatically because a canceled session no longer counts as busy — but it tidies up the
  * meeting so a canceled session's link doesn't stay live.
  *
- * §10 assumption, UNCONFIRMED WITH ISAIAH (§14.2): on a late cancel / no-show the coach
- * KEEPS the payout — that's the point of the penalty. The student forfeits and the coach
+ * §10 assumption, UNCONFIRMED WITH ISAIAH (§14.2): on a late cancel / no-show the mentor
+ * KEEPS the payout — that's the point of the penalty. The student forfeits and the mentor
  * is compensated for the held slot. If Isaiah wants it swept back to the platform
  * instead, the change is the `if (refundable)` branch below and nothing else.
  */
@@ -48,7 +48,7 @@ export async function cancelSession(params: {
   }
 
   if (params.actorUserId !== 'system') {
-    const isParty = params.actorUserId === session.studentId || params.actorUserId === session.coachId
+    const isParty = params.actorUserId === session.studentId || params.actorUserId === session.mentorId
     if (!isParty) throw new Error('Not authorized to cancel this session.')
   }
 
@@ -79,8 +79,8 @@ export async function cancelSession(params: {
     try {
       /**
        * refund_application_fee reverses OUR commission and reverse_transfer claws back
-       * the coach's payout, so a full refund actually unwinds the destination charge
-       * rather than leaving us paying the coach out of pocket (§10).
+       * the mentor's payout, so a full refund actually unwinds the destination charge
+       * rather than leaving us paying the mentor out of pocket (§10).
        */
       await stripe().refunds.create({
         payment_intent: session.stripePaymentIntentId,
@@ -106,12 +106,12 @@ async function notifyBothParties(
   session: typeof sessions.$inferSelect,
   refunded: boolean,
 ): Promise<void> {
-  const [student, coach] = await Promise.all([
+  const [student, mentor] = await Promise.all([
     db.query.users.findFirst({ where: eq(users.id, session.studentId) }),
-    db.query.users.findFirst({ where: eq(users.id, session.coachId) }),
+    db.query.users.findFirst({ where: eq(users.id, session.mentorId) }),
   ])
 
-  if (!student || !coach) return
+  if (!student || !mentor) return
 
   const startsAt = session.scheduledStart
     ? session.scheduledStart.toLocaleString('en-US', { dateStyle: 'full', timeStyle: 'short' })
@@ -127,21 +127,21 @@ async function notifyBothParties(
         subject: 'Your MentorReach session was canceled',
         react: SessionCanceledEmail({
           recipientName: firstName(student.fullName),
-          otherPartyName: coach.fullName ?? 'your coach',
+          otherPartyName: mentor.fullName ?? 'your mentor',
           startsAt,
           refunded,
         }),
       },
     }),
     notify({
-      userId: coach.id,
+      userId: mentor.id,
       type: 'session_canceled',
       payload: { sessionId: session.id, refunded },
       email: {
-        to: coach.email,
+        to: mentor.email,
         subject: 'A session was canceled',
         react: SessionCanceledEmail({
-          recipientName: firstName(coach.fullName),
+          recipientName: firstName(mentor.fullName),
           otherPartyName: student.fullName ?? 'your student',
           startsAt,
           refunded,

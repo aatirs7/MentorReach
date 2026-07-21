@@ -3,7 +3,7 @@ import Stripe from 'stripe'
 import { env, requireEnv } from './env'
 
 /**
- * Spec §10 — Stripe Connect. MentorReach is the platform; coaches are Express
+ * Spec §10 — Stripe Connect. MentorReach is the platform; mentors are Express
  * connected accounts.
  *
  * Lazily constructed on purpose: building the client at module scope would throw at
@@ -30,12 +30,12 @@ export function stripeConfigured(): boolean {
 }
 
 /**
- * Spec §10 — Express onboarding for a coach. Surfaced at/after approval.
- * Returns the account id to persist on coach_profiles.stripe_account_id.
+ * Spec §10 — Express onboarding for a mentor. Surfaced at/after approval.
+ * Returns the account id to persist on mentor_profiles.stripe_account_id.
  */
 export async function createExpressAccount(params: {
   email: string
-  coachUserId: string
+  mentorUserId: string
 }): Promise<string> {
   const account = await stripe().accounts.create({
     type: 'express',
@@ -44,31 +44,31 @@ export async function createExpressAccount(params: {
     capabilities: {
       transfers: { requested: true },
     },
-    metadata: { coachUserId: params.coachUserId },
+    metadata: { mentorUserId: params.mentorUserId },
   })
 
   return account.id
 }
 
-/** The hosted onboarding link a coach follows to finish Express setup. */
+/** The hosted onboarding link a mentor follows to finish Express setup. */
 export async function createAccountOnboardingLink(accountId: string): Promise<string> {
   const link = await stripe().accountLinks.create({
     account: accountId,
-    refresh_url: `${env.NEXT_PUBLIC_APP_URL}/coach/payouts?refresh=1`,
-    return_url: `${env.NEXT_PUBLIC_APP_URL}/coach/payouts?done=1`,
+    refresh_url: `${env.NEXT_PUBLIC_APP_URL}/mentor/payouts?refresh=1`,
+    return_url: `${env.NEXT_PUBLIC_APP_URL}/mentor/payouts?done=1`,
     type: 'account_onboarding',
   })
 
   return link.url
 }
 
-/** A coach can only be paid once Stripe says transfers are enabled. */
+/** A mentor can only be paid once Stripe says transfers are enabled. */
 export async function accountPayoutsReady(accountId: string): Promise<boolean> {
   const account = await stripe().accounts.retrieve(accountId)
   return Boolean(account.charges_enabled && account.payouts_enabled)
 }
 
-/** Dashboard link for a coach to see their own payouts. */
+/** Dashboard link for a mentor to see their own payouts. */
 export async function createLoginLink(accountId: string): Promise<string> {
   const link = await stripe().accounts.createLoginLink(accountId)
   return link.url

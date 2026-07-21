@@ -2,7 +2,7 @@
  * Role-choice icons — inline SVG, stroke-only, no fills and no icon library.
  *
  * Both borrow the logo mark's language: a line that RISES to the right. The student
- * icon is that arrow literally, climbing over rungs; the coach icon is the same energy
+ * icon is that arrow literally, climbing over rungs; the mentor icon is the same energy
  * inverted into a signal radiating outward ("reach the people who've been there").
  *
  * `stroke="currentColor"` rather than a hardcoded hex, so the caller sets the color with
@@ -38,7 +38,7 @@ export function StudentIcon({ className = '' }: { className?: string }) {
 }
 
 /** A beacon radiating outward. */
-export function CoachIcon({ className = '' }: { className?: string }) {
+export function MentorIcon({ className = '' }: { className?: string }) {
   return (
     <svg {...BASE} className={className}>
       {/* source */}

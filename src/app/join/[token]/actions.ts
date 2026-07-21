@@ -3,24 +3,24 @@
 import { and, eq } from 'drizzle-orm'
 import { redirect } from 'next/navigation'
 import { db } from '@/db'
-import { coachInvites } from '@/db/schema'
+import { mentorInvites } from '@/db/schema'
 import { ensureUser, getDbUser } from '@/lib/auth/ensure-user'
 import { setRole } from '@/lib/auth/set-role'
 
 export type ClaimState = { error?: string }
 
 /**
- * Claim a coach invite. The signed-in visitor becomes a coach and lands in onboarding.
+ * Claim a mentor invite. The signed-in visitor becomes a mentor and lands in onboarding.
  *
- * Role handling: a brand-new invitee has no Clerk role yet, so setRole('coach') succeeds.
- * Someone who is already a coach passes through. A student/admin can't be flipped, so we
+ * Role handling: a brand-new invitee has no Clerk role yet, so setRole('mentor') succeeds.
+ * Someone who is already a mentor passes through. A student/admin can't be flipped, so we
  * refuse with a clear message rather than silently doing nothing.
  */
 export async function claimInvite(token: string): Promise<ClaimState> {
   const user = await ensureUser()
   if (!user) redirect(`/sign-in?redirect_url=/join/${token}`)
 
-  const invite = await db.query.coachInvites.findFirst({ where: eq(coachInvites.token, token) })
+  const invite = await db.query.mentorInvites.findFirst({ where: eq(mentorInvites.token, token) })
   if (!invite || invite.status === 'revoked') {
     return { error: 'This invite is no longer valid.' }
   }
@@ -31,22 +31,22 @@ export async function claimInvite(token: string): Promise<ClaimState> {
     return { error: 'This invite has already been used.' }
   }
 
-  // Make the visitor a coach (no-op error if they already are).
-  const result = await setRole('coach')
+  // Make the visitor a mentor (no-op error if they already are).
+  const result = await setRole('mentor')
   const dbUser = await getDbUser()
-  const isCoach = result.ok || dbUser?.role === 'coach'
+  const isMentor = result.ok || dbUser?.role === 'mentor'
 
-  if (!isCoach) {
+  if (!isMentor) {
     return {
       error:
-        'This invite is for a new coach account, but you’re signed in as a different account type. Sign out and use the invite link again to create a coach account.',
+        'This invite is for a new mentor account, but you’re signed in as a different account type. Sign out and use the invite link again to create a mentor account.',
     }
   }
 
   await db
-    .update(coachInvites)
+    .update(mentorInvites)
     .set({ status: 'accepted', acceptedUserId: user.id, acceptedAt: new Date() })
-    .where(and(eq(coachInvites.id, invite.id)))
+    .where(and(eq(mentorInvites.id, invite.id)))
 
-  redirect('/coach/onboarding')
+  redirect('/mentor/onboarding')
 }

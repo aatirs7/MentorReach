@@ -55,7 +55,7 @@ export function isTerminal(status: SessionStatus): boolean {
  * §9 note about matching Calendly's cancellation cutoff no longer applies.
  *
  * An unscheduled session (paid, never booked a time) is always refundable: the student
- * paid and got nothing, and there's no held slot to compensate the coach for.
+ * paid and got nothing, and there's no held slot to compensate the mentor for.
  */
 export function refundEligibility(params: {
   scheduledStart: Date | null

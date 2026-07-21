@@ -40,7 +40,7 @@ export default async function IntegrationsPage() {
       name: 'Stripe payments (§10)',
       live: s.stripe,
       envVars: ['STRIPE_SECRET_KEY'],
-      whenMissing: 'Booking is disabled. Coaches can’t be paid and no session can be created.',
+      whenMissing: 'Booking is disabled. Mentors can’t be paid and no session can be created.',
     },
     {
       name: 'Stripe webhooks',

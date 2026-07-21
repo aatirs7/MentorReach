@@ -60,7 +60,7 @@ export default function StyleGuidePage() {
           <div>
             <p className="label-mono">Inter / body</p>
             <p className="mt-2 max-w-prose">
-              Coaching from people who already have the job you want. Book a session, get a
+              Mentoring from people who already have the job you want. Book a session, get a
               straight answer, and move.
             </p>
           </div>
@@ -88,7 +88,7 @@ export default function StyleGuidePage() {
 
         <Card className="mt-8 max-w-sm">
           <CardHeader>
-            <CardTitle>Coach card</CardTitle>
+            <CardTitle>Mentor card</CardTitle>
             <CardDescription>Separated by a rule, not a shadow.</CardDescription>
           </CardHeader>
           <CardContent className="space-y-2">

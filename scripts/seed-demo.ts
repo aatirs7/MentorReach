@@ -1,5 +1,5 @@
 /**
- * Seed demo coaches so browse has something to show in a walkthrough.
+ * Seed demo mentors so browse has something to show in a walkthrough.
  *
  *   npx tsx scripts/seed-demo.ts          # insert (idempotent)
  *   npx tsx scripts/seed-demo.ts --undo   # remove every seeded row
@@ -11,10 +11,10 @@
  *   populate browse.
  * - Every row is written with is_seed = true. That flag is what lets these profiles
  *   carry generated portraits: resolveHeadshot() in src/lib/headshot.ts refuses to render
- *   a placeholder face on any profile WITHOUT it, so a real coach can never show a fake
- *   face while the site claims every coach is verified against their employer.
+ *   a placeholder face on any profile WITHOUT it, so a real mentor can never show a fake
+ *   face while the site claims every mentor is verified against their employer.
  * - Portraits are generated (i.pravatar.cc), not photographs of real people. They're
- *   deterministic per coach, so the same demo coach always has the same face.
+ *   deterministic per mentor, so the same demo mentor always has the same face.
  * - --undo refuses to touch anything without the prefix.
  *
  * Builds its own DB client rather than importing src/db, which is 'server-only' and
@@ -28,7 +28,7 @@ import { neon } from '@neondatabase/serverless'
 import { and, eq, like } from 'drizzle-orm'
 import { drizzle } from 'drizzle-orm/neon-http'
 import * as schema from '../src/db/schema'
-import { coachOfferings, coachProfiles, users } from '../src/db/schema'
+import { mentorOfferings, mentorProfiles, users } from '../src/db/schema'
 import { seedHeadshotUrl } from '../src/lib/headshot'
 
 const url = process.env.DATABASE_URL
@@ -38,7 +38,7 @@ const db = drizzle({ client: neon(url), schema })
 
 const SEED_PREFIX = 'seed_demo_'
 
-type DemoCoach = {
+type DemoMentor = {
   slug: string
   fullName: string
   email: string
@@ -53,7 +53,7 @@ type DemoCoach = {
   offerings: Array<{ lengthMinutes: number; priceCents: number }>
 }
 
-const COACHES: DemoCoach[] = [
+const MENTORS: DemoMentor[] = [
   {
     slug: 'maya-rao',
     fullName: 'Maya Rao',
@@ -164,36 +164,36 @@ async function undo() {
     // were somehow wrong.
     if (!u.clerkId.startsWith(SEED_PREFIX)) continue
 
-    await db.delete(coachOfferings).where(eq(coachOfferings.coachId, u.id))
-    await db.delete(coachProfiles).where(eq(coachProfiles.userId, u.id))
+    await db.delete(mentorOfferings).where(eq(mentorOfferings.mentorId, u.id))
+    await db.delete(mentorProfiles).where(eq(mentorProfiles.userId, u.id))
     await db.delete(users).where(and(eq(users.id, u.id), like(users.clerkId, `${SEED_PREFIX}%`)))
   }
 
-  console.log(`Removed ${seeded.length} seeded coaches.`)
+  console.log(`Removed ${seeded.length} seeded mentors.`)
 }
 
 async function seed() {
-  for (const c of COACHES) {
+  for (const c of MENTORS) {
     const clerkId = `${SEED_PREFIX}${c.slug}`
 
     const [user] = await db
       .insert(users)
-      .values({ clerkId, role: 'coach', email: c.email, fullName: c.fullName })
+      .values({ clerkId, role: 'mentor', email: c.email, fullName: c.fullName })
       .onConflictDoUpdate({
         target: users.clerkId,
-        set: { email: c.email, fullName: c.fullName, role: 'coach' },
+        set: { email: c.email, fullName: c.fullName, role: 'mentor' },
       })
       .returning()
 
     /**
-     * Deterministic per coach: same demo coach, same face, every reseed. Keyed on the
+     * Deterministic per mentor: same demo mentor, same face, every reseed. Keyed on the
      * stable slug rather than the uuid so re-running after an --undo doesn't reshuffle
      * everyone's portrait.
      */
     const headshotUrl = seedHeadshotUrl(c.slug)
 
     await db
-      .insert(coachProfiles)
+      .insert(mentorProfiles)
       .values({
         userId: user.id,
         industry: c.industry,
@@ -204,7 +204,7 @@ async function seed() {
         linkedinUrl: c.linkedinUrl,
         employerNote: c.employerNote ?? null,
         referralCode: c.referralCode,
-        // Demo coaches are pre-approved so browse has something in it. Real coaches
+        // Demo mentors are pre-approved so browse has something in it. Real mentors
         // still default to 'pending' — this bypasses nothing in the app itself.
         status: 'approved',
         approvedAt: new Date(),
@@ -213,7 +213,7 @@ async function seed() {
         isSeed: true,
       })
       .onConflictDoUpdate({
-        target: coachProfiles.userId,
+        target: mentorProfiles.userId,
         set: {
           industry: c.industry,
           currentTitle: c.currentTitle,
@@ -228,10 +228,10 @@ async function seed() {
 
     for (const o of c.offerings) {
       await db
-        .insert(coachOfferings)
-        .values({ coachId: user.id, lengthMinutes: o.lengthMinutes, priceCents: o.priceCents })
+        .insert(mentorOfferings)
+        .values({ mentorId: user.id, lengthMinutes: o.lengthMinutes, priceCents: o.priceCents })
         .onConflictDoUpdate({
-          target: [coachOfferings.coachId, coachOfferings.lengthMinutes],
+          target: [mentorOfferings.mentorId, mentorOfferings.lengthMinutes],
           set: { priceCents: o.priceCents, isActive: true },
         })
     }
@@ -239,7 +239,7 @@ async function seed() {
     console.log(`  ✓ ${c.fullName} — ${c.industry}`)
   }
 
-  console.log(`\nSeeded ${COACHES.length} demo coaches.`)
+  console.log(`\nSeeded ${MENTORS.length} demo mentors.`)
   console.log(`Remove them any time with:  npx tsx scripts/seed-demo.ts --undo`)
 }
 

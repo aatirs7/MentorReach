@@ -15,7 +15,7 @@ import { usePathname } from 'next/navigation'
  * costs nothing — the wrapped links are already rendered markup either way.
  *
  * Scoped by prefix rather than an exact path so the survey step behaves like the role
- * step; both are pre-completion states where the same reasoning holds. /coach/onboarding
+ * step; both are pre-completion states where the same reasoning holds. /mentor/onboarding
  * is deliberately NOT matched: it has its own shell.
  */
 export function HideDuringOnboarding({ children }: { children: React.ReactNode }) {

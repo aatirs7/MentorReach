@@ -3,14 +3,14 @@ import { eq } from 'drizzle-orm'
 import { db } from '@/db'
 import { sessions } from '@/db/schema'
 
-/** Per-coach numbers for the admin coach detail page. */
-export type CoachStats = {
+/** Per-mentor numbers for the admin mentor detail page. */
+export type MentorStats = {
   total: number
   completed: number
   upcoming: number
   canceled: number
   distinctStudents: number
-  /** Coach's earnings on COMPLETED sessions (cents). */
+  /** Mentor's earnings on COMPLETED sessions (cents). */
   payoutCents: number
   /** Our commission on completed sessions (cents). */
   commissionCents: number
@@ -21,19 +21,19 @@ export type CoachStats = {
 const UPCOMING = new Set(['paid_unscheduled', 'booked', 'rescheduled'])
 const CANCELED = new Set(['canceled_free', 'canceled_late', 'refunded'])
 
-export async function coachStats(coachUserId: string): Promise<CoachStats> {
+export async function mentorStats(mentorUserId: string): Promise<MentorStats> {
   const rows = await db
     .select({
       status: sessions.status,
       studentId: sessions.studentId,
       amountCents: sessions.amountCents,
-      payoutCents: sessions.coachPayoutCents,
+      payoutCents: sessions.mentorPayoutCents,
       commissionCents: sessions.commissionCents,
     })
     .from(sessions)
-    .where(eq(sessions.coachId, coachUserId))
+    .where(eq(sessions.mentorId, mentorUserId))
 
-  const stats: CoachStats = {
+  const stats: MentorStats = {
     total: rows.length,
     completed: 0,
     upcoming: 0,

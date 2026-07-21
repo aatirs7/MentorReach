@@ -5,7 +5,7 @@ import { env, requireEnv } from './env'
  * Zoom video meetings for the native scheduler.
  *
  * One platform Zoom account, Server-to-Server OAuth. A meeting is created per booking; the
- * coach gets the host link (start_url), both parties the join link (join_url).
+ * mentor gets the host link (start_url), both parties the join link (join_url).
  *
  * Optional integration like Stripe/Resend: without keys `zoomConfigured()` is false and the
  * Book button is gated with an honest reason. `requireEnv()` throws a clear message only on

@@ -17,8 +17,8 @@ export type NotificationType =
   | 'payment_received'
   | 'session_canceled'
   | 'session_reminder'
-  | 'coach_approved'
-  | 'coach_rejected'
+  | 'mentor_approved'
+  | 'mentor_rejected'
   | 'new_report'
 
 export async function notify(params: {

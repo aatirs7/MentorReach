@@ -4,15 +4,15 @@ import { ReviewActions } from './review-actions'
 import { Badge } from '@/components/ui/badge'
 import { Card } from '@/components/ui/card'
 import { db } from '@/db'
-import { coachApplications } from '@/db/schema'
+import { mentorApplications } from '@/db/schema'
 import { requireAdmin } from '@/lib/auth/guards'
 import { NO_INDEX } from '@/lib/seo'
 
-export const metadata = { title: 'Coach applications', ...NO_INDEX }
+export const metadata = { title: 'Mentor applications', ...NO_INDEX }
 export const dynamic = 'force-dynamic'
 
 /**
- * Coach application review — ADMIN ONLY. Unlike the rest of /ops (public), this holds
+ * Mentor application review — ADMIN ONLY. Unlike the rest of /ops (public), this holds
  * applicant personal data (email, employer, LinkedIn), so it's gated. requireAdmin()
  * redirects non-admins.
  */
@@ -21,8 +21,8 @@ export default async function ApplicationsPage() {
 
   const apps = await db
     .select()
-    .from(coachApplications)
-    .orderBy(asc(coachApplications.status), desc(coachApplications.createdAt))
+    .from(mentorApplications)
+    .orderBy(asc(mentorApplications.status), desc(mentorApplications.createdAt))
 
   const open = apps.filter((a) => a.status === 'new' || a.status === 'reviewing')
   const decided = apps.filter((a) => a.status === 'accepted' || a.status === 'rejected')
@@ -30,7 +30,7 @@ export default async function ApplicationsPage() {
   return (
     <main className="mx-auto w-full max-w-7xl px-6 py-10">
       <ConsoleHeader
-        title="Coach applications"
+        title="Mentor applications"
         description="Review applicants and accept them into setup, or decline."
       />
 
@@ -46,7 +46,7 @@ function Section({
   empty,
 }: {
   title: string
-  apps: Array<typeof coachApplications.$inferSelect>
+  apps: Array<typeof mentorApplications.$inferSelect>
   empty: string
 }) {
   return (
@@ -77,7 +77,7 @@ function Row({ q, a }: { q: string; a: string | null | undefined }) {
   )
 }
 
-function ApplicationCard({ app }: { app: typeof coachApplications.$inferSelect }) {
+function ApplicationCard({ app }: { app: typeof mentorApplications.$inferSelect }) {
   const field = app.field === 'Other' ? app.fieldOther || 'Other' : app.field
   const tone =
     app.status === 'accepted' ? 'default' : app.status === 'rejected' ? 'destructive' : 'secondary'
@@ -110,7 +110,7 @@ function ApplicationCard({ app }: { app: typeof coachApplications.$inferSelect }
           <Row q="Start" a={app.startTiming === 'immediately' ? 'Immediately' : app.startOther || 'Other'} />
           <Row q="Rates" a={[app.rate30 && `30m ${app.rate30}`, app.rate45 && `45m ${app.rate45}`, app.rate60 && `60m ${app.rate60}`].filter(Boolean).join(' · ')} />
           <Row q="Open to suggested rate" a={app.openToSuggested ? 'Yes' : 'No'} />
-          <Row q="Coaching" a={[...app.coachingTypes, app.coachingOther ? `Other: ${app.coachingOther}` : ''].filter(Boolean).join(', ')} />
+          <Row q="Mentoring" a={[...app.mentoringTypes, app.mentoringOther ? `Other: ${app.mentoringOther}` : ''].filter(Boolean).join(', ')} />
           <Row q="Ideal student" a={app.idealStudent} />
           <Row q="Employer concerns" a={`${app.employerConcerns}${app.employerConcernNote ? ` — ${app.employerConcernNote}` : ''}`} />
           <Row q="Employer visibility" a={app.employerVisibility === 'show_name' ? "Show employer's name" : 'Describe generally'} />

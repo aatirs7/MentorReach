@@ -1,4 +1,4 @@
-export type Role = 'student' | 'coach' | 'admin'
+export type Role = 'student' | 'mentor' | 'admin'
 
 declare global {
   /**

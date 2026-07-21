@@ -1,6 +1,6 @@
 /**
- * A curated list of IANA timezones for the coach availability editor. Not exhaustive —
- * the common ones our coaches are in, plus a spread of others. Plain module (no
+ * A curated list of IANA timezones for the mentor availability editor. Not exhaustive —
+ * the common ones our mentors are in, plus a spread of others. Plain module (no
  * server-only) so the client editor can import it.
  */
 export const COMMON_TIMEZONES: Array<{ value: string; label: string }> = [

@@ -3,11 +3,11 @@
 import { eq } from 'drizzle-orm'
 import { revalidatePath } from 'next/cache'
 import { db } from '@/db'
-import { coachApplications } from '@/db/schema'
+import { mentorApplications } from '@/db/schema'
 import { requireAdmin } from '@/lib/auth/guards'
 import { firstName } from '@/lib/cancel'
-import { createCoachInvite } from '@/lib/coach-invite'
-import { CoachInviteEmail, CoachRejectedEmail } from '@/lib/email/templates'
+import { createMentorInvite } from '@/lib/mentor-invite'
+import { MentorInviteEmail, MentorRejectedEmail } from '@/lib/email/templates'
 import { sendEmail } from '@/lib/email/client'
 
 export type ReviewState = { error?: string; success?: string }
@@ -26,28 +26,28 @@ export async function reviewApplication(_prev: ReviewState, formData: FormData):
 
   if (!id) return { error: 'Missing application.' }
 
-  const app = await db.query.coachApplications.findFirst({ where: eq(coachApplications.id, id) })
+  const app = await db.query.mentorApplications.findFirst({ where: eq(mentorApplications.id, id) })
   if (!app) return { error: 'Application not found.' }
 
   if (action === 'reviewing') {
     await db
-      .update(coachApplications)
+      .update(mentorApplications)
       .set({ status: 'reviewing', reviewedAt: new Date(), reviewedBy: admin.email })
-      .where(eq(coachApplications.id, id))
+      .where(eq(mentorApplications.id, id))
     revalidatePath('/ops/applications')
     return { success: 'Marked as reviewing.' }
   }
 
   if (action === 'accept') {
     await db
-      .update(coachApplications)
+      .update(mentorApplications)
       .set({ status: 'accepted', reviewedAt: new Date(), reviewedBy: admin.email })
-      .where(eq(coachApplications.id, id))
+      .where(eq(mentorApplications.id, id))
 
     // Mint a tokenized invite (prefilled from the application) — the same /join flow a
     // directly-invited friend gets, instead of a bare /sign-up link.
     const field = app.field === 'Other' ? app.fieldOther : app.field
-    const { url } = await createCoachInvite({
+    const { url } = await createMentorInvite({
       email: app.email,
       fullName: app.fullName,
       prefillField: field ?? null,
@@ -57,8 +57,8 @@ export async function reviewApplication(_prev: ReviewState, formData: FormData):
 
     await sendEmail({
       to: app.email,
-      subject: 'You’re in — set up your MentorReach coaching profile',
-      react: CoachInviteEmail({
+      subject: 'You’re in — set up your MentorReach mentoring profile',
+      react: MentorInviteEmail({
         firstName: firstName(app.fullName),
         inviteUrl: url,
         inviterName: admin.fullName ?? undefined,
@@ -73,15 +73,15 @@ export async function reviewApplication(_prev: ReviewState, formData: FormData):
     const notify = formData.get('notify') === 'true'
 
     await db
-      .update(coachApplications)
+      .update(mentorApplications)
       .set({ status: 'rejected', reviewedAt: new Date(), reviewedBy: admin.email })
-      .where(eq(coachApplications.id, id))
+      .where(eq(mentorApplications.id, id))
 
     if (notify) {
       await sendEmail({
         to: app.email,
         subject: 'An update on your MentorReach application',
-        react: CoachRejectedEmail({ coachName: firstName(app.fullName) }),
+        react: MentorRejectedEmail({ mentorName: firstName(app.fullName) }),
       })
     }
 

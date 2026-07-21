@@ -3,10 +3,10 @@
 import { eq } from 'drizzle-orm'
 import { revalidatePath } from 'next/cache'
 import { db } from '@/db'
-import { coachOfferings, sessionNotes, sessions, users } from '@/db/schema'
+import { mentorOfferings, sessionNotes, sessions, users } from '@/db/schema'
 import { requireUser } from '@/lib/auth/guards'
 import { firstName, cancelSession } from '@/lib/cancel'
-import { formatPrice } from '@/lib/coach-schema'
+import { formatPrice } from '@/lib/mentor-schema'
 import { BookingConfirmedEmail } from '@/lib/email/templates'
 import { env } from '@/lib/env'
 import { notify } from '@/lib/notifications'
@@ -43,18 +43,18 @@ export async function cancelSessionAction(
   }
 }
 
-/** Open slots to reschedule a session into (its coach + same length). Party-only. */
+/** Open slots to reschedule a session into (its mentor + same length). Party-only. */
 export async function rescheduleSlots(sessionId: string): Promise<string[]> {
   const user = await requireUser()
   const session = await db.query.sessions.findFirst({ where: eq(sessions.id, sessionId) })
   if (!session) return []
-  if (user.id !== session.studentId && user.id !== session.coachId) return []
+  if (user.id !== session.studentId && user.id !== session.mentorId) return []
 
-  const offering = await db.query.coachOfferings.findFirst({ where: eq(coachOfferings.id, session.offeringId) })
+  const offering = await db.query.mentorOfferings.findFirst({ where: eq(mentorOfferings.id, session.offeringId) })
   if (!offering) return []
 
   const slots = await getBookableSlots({
-    coachUserId: session.coachId,
+    mentorUserId: session.mentorId,
     offeringLengthMin: offering.lengthMinutes,
     now: new Date(),
   })
@@ -73,19 +73,19 @@ export async function rescheduleSessionAction(_prev: ActionState, formData: Form
 
   const session = await db.query.sessions.findFirst({ where: eq(sessions.id, sessionId) })
   if (!session) return { error: 'Session not found.' }
-  if (user.id !== session.studentId && user.id !== session.coachId) {
+  if (user.id !== session.studentId && user.id !== session.mentorId) {
     return { error: 'Not authorized.' }
   }
   if (!isScheduled(session.status as SessionStatus)) {
     return { error: 'Only a booked session can be rescheduled.' }
   }
 
-  const offering = await db.query.coachOfferings.findFirst({ where: eq(coachOfferings.id, session.offeringId) })
+  const offering = await db.query.mentorOfferings.findFirst({ where: eq(mentorOfferings.id, session.offeringId) })
   if (!offering) return { error: 'Session length not found.' }
   const slotEnd = new Date(slotStart.getTime() + offering.lengthMinutes * 60_000)
 
   const open = await isSlotOpen({
-    coachUserId: session.coachId,
+    mentorUserId: session.mentorId,
     offeringLengthMin: offering.lengthMinutes,
     slotStart,
     now: new Date(),
@@ -116,12 +116,12 @@ export async function rescheduleSessionAction(_prev: ActionState, formData: Form
 async function notifyRescheduled(sessionId: string, start: Date): Promise<void> {
   const session = await db.query.sessions.findFirst({ where: eq(sessions.id, sessionId) })
   if (!session) return
-  const [student, coach, offering] = await Promise.all([
+  const [student, mentor, offering] = await Promise.all([
     db.query.users.findFirst({ where: eq(users.id, session.studentId) }),
-    db.query.users.findFirst({ where: eq(users.id, session.coachId) }),
-    db.query.coachOfferings.findFirst({ where: eq(coachOfferings.id, session.offeringId) }),
+    db.query.users.findFirst({ where: eq(users.id, session.mentorId) }),
+    db.query.mentorOfferings.findFirst({ where: eq(mentorOfferings.id, session.offeringId) }),
   ])
-  if (!student || !coach) return
+  if (!student || !mentor) return
 
   const startsAt = start.toLocaleString('en-US', { dateStyle: 'full', timeStyle: 'short' })
   const manageUrl = `${env.NEXT_PUBLIC_APP_URL}/sessions`
@@ -134,10 +134,10 @@ async function notifyRescheduled(sessionId: string, start: Date): Promise<void> 
       payload: { sessionId: session.id },
       email: {
         to: student.email,
-        subject: `Your session with ${coach.fullName ?? 'your coach'} was rescheduled`,
+        subject: `Your session with ${mentor.fullName ?? 'your mentor'} was rescheduled`,
         react: BookingConfirmedEmail({
           studentName: firstName(student.fullName),
-          coachName: coach.fullName ?? 'your coach',
+          mentorName: mentor.fullName ?? 'your mentor',
           lengthMinutes,
           startsAt,
           amount: formatPrice(session.amountCents),
@@ -147,18 +147,18 @@ async function notifyRescheduled(sessionId: string, start: Date): Promise<void> 
       },
     }),
     notify({
-      userId: coach.id,
+      userId: mentor.id,
       type: 'booking_confirmed',
       payload: { sessionId: session.id },
       email: {
-        to: coach.email,
+        to: mentor.email,
         subject: `A session was rescheduled`,
         react: BookingConfirmedEmail({
-          studentName: firstName(coach.fullName),
-          coachName: student.fullName ?? 'your student',
+          studentName: firstName(mentor.fullName),
+          mentorName: student.fullName ?? 'your student',
           lengthMinutes,
           startsAt,
-          amount: formatPrice(session.coachPayoutCents),
+          amount: formatPrice(session.mentorPayoutCents),
           manageUrl,
           joinUrl: session.zoomJoinUrl ?? undefined,
         }),
@@ -167,7 +167,7 @@ async function notifyRescheduled(sessionId: string, start: Date): Promise<void> 
   ])
 }
 
-/** Spec §12 — coach leaves a brief post-session note, visible to that student. */
+/** Spec §12 — mentor leaves a brief post-session note, visible to that student. */
 export async function addSessionNote(
   _prev: ActionState,
   formData: FormData,
@@ -184,12 +184,12 @@ export async function addSessionNote(
   const session = await db.query.sessions.findFirst({ where: eq(sessions.id, sessionId) })
   if (!session) return { error: 'Session not found.' }
 
-  // Only the session's coach may leave notes on it — not the student, not another coach.
-  if (session.coachId !== user.id) return { error: 'Only the coach can leave notes.' }
+  // Only the session's mentor may leave notes on it — not the student, not another mentor.
+  if (session.mentorId !== user.id) return { error: 'Only the mentor can leave notes.' }
 
   await db.insert(sessionNotes).values({
     sessionId,
-    coachId: user.id,
+    mentorId: user.id,
     body: body.trim(),
   })
 

@@ -3,9 +3,9 @@ import Link from 'next/link'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { db } from '@/db'
-import { coachOfferings, sessions, users } from '@/db/schema'
+import { mentorOfferings, sessions, users } from '@/db/schema'
 import { requireStudent } from '@/lib/auth/guards'
-import { formatPrice } from '@/lib/coach-schema'
+import { formatPrice } from '@/lib/mentor-schema'
 import { NO_INDEX } from '@/lib/seo'
 
 export const metadata = { title: 'Booking confirmed', ...NO_INDEX }
@@ -45,11 +45,11 @@ export default async function BookCompletePage({
     )
   }
 
-  const [offering, coach] = await Promise.all([
-    db.query.coachOfferings.findFirst({ where: eq(coachOfferings.id, session.offeringId) }),
-    db.query.users.findFirst({ where: eq(users.id, session.coachId) }),
+  const [offering, mentor] = await Promise.all([
+    db.query.mentorOfferings.findFirst({ where: eq(mentorOfferings.id, session.offeringId) }),
+    db.query.users.findFirst({ where: eq(users.id, session.mentorId) }),
   ])
-  const coachName = coach?.fullName ?? 'your coach'
+  const mentorName = mentor?.fullName ?? 'your mentor'
 
   // Safety-net path: the slot was taken during checkout, so nothing is scheduled.
   if (session.status === 'paid_unscheduled') {
@@ -74,7 +74,7 @@ export default async function BookCompletePage({
       <p className="label-mono">You&rsquo;re booked</p>
       <h1 className="mt-3 text-4xl">See you soon</h1>
       <p className="mt-3 text-slate">
-        Your {offering?.lengthMinutes}-minute session with {coachName} is confirmed. We&rsquo;ve
+        Your {offering?.lengthMinutes}-minute session with {mentorName} is confirmed. We&rsquo;ve
         emailed you the details and your Zoom link.
       </p>
 

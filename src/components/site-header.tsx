@@ -9,7 +9,7 @@ import { hasCompletedSurvey } from '@/lib/auth/guards'
 import { unreadCount } from '@/lib/notifications'
 
 /**
- * Spec §3 — "hides coach-only/admin-only surfaces".
+ * Spec §3 — "hides mentor-only/admin-only surfaces".
  *
  * This is presentation only. Every destination re-checks authorization at the resource,
  * because hiding a link is not access control.
@@ -77,10 +77,10 @@ export async function SiteHeader() {
                  * hiding it would just mean typing the URL.
                  */}
                 {(user?.role === 'student' && surveyDone) || user?.role === 'admin' ? (
-                  <NavLink href="/coaches">Browse</NavLink>
+                  <NavLink href="/mentors">Browse</NavLink>
                 ) : null}
 
-                {user?.role === 'coach' ? <NavLink href="/coach">Coaching</NavLink> : null}
+                {user?.role === 'mentor' ? <NavLink href="/mentor">Mentoring</NavLink> : null}
                 {user?.role === 'admin' ? <NavLink href="/admin">Admin</NavLink> : null}
 
                 {user && user.role !== 'admin' ? (

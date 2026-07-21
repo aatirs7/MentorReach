@@ -7,15 +7,15 @@ import { pgEnum } from 'drizzle-orm/pg-core'
  */
 
 /** Spec §3. */
-export const userRole = pgEnum('user_role', ['student', 'coach', 'admin'])
+export const userRole = pgEnum('user_role', ['student', 'mentor', 'admin'])
 
 /** Spec §7 Q1. */
 export const educationLevel = pgEnum('education_level', ['hs', 'college'])
 
-/** Spec §5 / §2.4 — new coach profiles start `pending` and are unbookable. */
-export const coachStatus = pgEnum('coach_status', ['pending', 'approved', 'suspended'])
+/** Spec §5 / §2.4 — new mentor profiles start `pending` and are unbookable. */
+export const mentorStatus = pgEnum('mentor_status', ['pending', 'approved', 'suspended'])
 
-/** Spec §6 — how the coach/student relationship was sourced. Frozen at first bind. */
+/** Spec §6 — how the mentor/student relationship was sourced. Frozen at first bind. */
 export const sourcedVia = pgEnum('sourced_via', ['referral', 'platform'])
 
 /**

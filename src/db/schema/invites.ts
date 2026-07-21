@@ -2,25 +2,25 @@ import { index, pgTable, text, timestamp, uuid } from 'drizzle-orm/pg-core'
 import { users } from './users'
 
 /**
- * Coach invites — the official way a pre-approved coach gets onto the platform.
+ * Mentor invites — the official way a pre-approved mentor gets onto the platform.
  *
  * Two sources feed this table:
- *   1. A founder invites someone directly from /admin/coaches (a friend, or anyone we
+ *   1. A founder invites someone directly from /admin/mentors (a friend, or anyone we
  *      vetted off-platform) — no application row exists.
  *   2. An application is accepted in /ops/applications, which mints an invite for that
  *      email (prefilled from the application) instead of the old bare /sign-up link.
  *
  * The invite carries a unique `token`; the link is /join/<token>. Claiming it sets the
- * coach role (src/lib/auth/set-role.ts) and drops the person into /coach/onboarding.
+ * mentor role (src/lib/auth/set-role.ts) and drops the person into /mentor/onboarding.
  *
- * NOT a coach profile and NOT an account — an invitee has no `users` row until they sign
+ * NOT a mentor profile and NOT an account — an invitee has no `users` row until they sign
  * up and claim. `accepted_user_id` links to that row once they do.
  *
- * `status` is plain `text` (like coach_applications.status): internal state that may
+ * `status` is plain `text` (like mentor_applications.status): internal state that may
  * churn, not worth a pg enum.
  */
-export const coachInvites = pgTable(
-  'coach_invites',
+export const mentorInvites = pgTable(
+  'mentor_invites',
   {
     id: uuid('id').primaryKey().defaultRandom(),
 
@@ -52,5 +52,5 @@ export const coachInvites = pgTable(
     /** Nullable = never expires. The app sets +30 days on create and honors it if present. */
     expiresAt: timestamp('expires_at', { withTimezone: true, mode: 'date' }),
   },
-  (t) => [index('coach_invites_email_status_idx').on(t.email, t.status)],
+  (t) => [index('mentor_invites_email_status_idx').on(t.email, t.status)],
 )

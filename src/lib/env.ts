@@ -70,7 +70,7 @@ const schema = z.object({
   /** e.g. "MentorReach <hello@mentorreach.com>" */
   EMAIL_FROM: optionalKey(),
 
-  /** Vercel Blob store token — enables coach headshot uploads. Auto-injected on Vercel
+  /** Vercel Blob store token — enables mentor headshot uploads. Auto-injected on Vercel
    *  when a Blob store is connected. */
   BLOB_READ_WRITE_TOKEN: optionalKey(),
 

@@ -5,7 +5,7 @@
  * element, where the parser ends the script at the first literal `</script>` regardless of
  * quoting. A bio containing that text — or `<!--` — would break out of the tag and inject
  * markup. Escaping `<` covers all three cases, and structured data is frequently built
- * from user-supplied text (coach bios, titles), so the risk is real rather than theoretical.
+ * from user-supplied text (mentor bios, titles), so the risk is real rather than theoretical.
  *
  * dangerouslySetInnerHTML is required: React would otherwise HTML-escape the JSON and
  * every crawler would fail to parse it.

@@ -1,12 +1,12 @@
 import { relations, sql } from 'drizzle-orm'
 import { check, index, integer, pgTable, text, timestamp, uuid } from 'drizzle-orm/pg-core'
-import { coachOfferings } from './coaches'
+import { mentorOfferings } from './mentors'
 import { sessionStatus } from './enums'
-import { coachStudentLinks } from './links'
+import { mentorStudentLinks } from './links'
 import { users } from './users'
 
 /**
- * Spec §8/§10/§11 — a paid coaching session.
+ * Spec §8/§10/§11 — a paid mentoring session.
  *
  * Native scheduler flow: the student picks a time, then pays, so a completed checkout is
  * created directly as `booked` with a time and a Zoom meeting. `paid_unscheduled` remains
@@ -18,7 +18,7 @@ export const sessions = pgTable(
   {
     id: uuid('id').primaryKey().defaultRandom(),
 
-    coachId: uuid('coach_id')
+    mentorId: uuid('mentor_id')
       .notNull()
       .references(() => users.id, { onDelete: 'restrict' }),
 
@@ -28,7 +28,7 @@ export const sessions = pgTable(
 
     offeringId: uuid('offering_id')
       .notNull()
-      .references(() => coachOfferings.id, { onDelete: 'restrict' }),
+      .references(() => mentorOfferings.id, { onDelete: 'restrict' }),
 
     /**
      * Not in spec §4. Makes commission provenance auditable per session: proving why a
@@ -38,11 +38,11 @@ export const sessions = pgTable(
      */
     linkId: uuid('link_id')
       .notNull()
-      .references(() => coachStudentLinks.id, { onDelete: 'restrict' }),
+      .references(() => mentorStudentLinks.id, { onDelete: 'restrict' }),
 
     amountCents: integer('amount_cents').notNull(),
     commissionCents: integer('commission_cents').notNull(),
-    coachPayoutCents: integer('coach_payout_cents').notNull(),
+    mentorPayoutCents: integer('mentor_payout_cents').notNull(),
 
     status: sessionStatus('status').notNull().default('paid_unscheduled'),
 
@@ -55,7 +55,7 @@ export const sessions = pgTable(
 
     /**
      * Zoom meeting for this session, created when the booking is confirmed. Host link goes
-     * to the coach (zoomStartUrl), join link to both parties (zoomJoinUrl). Nullable: a
+     * to the mentor (zoomStartUrl), join link to both parties (zoomJoinUrl). Nullable: a
      * session can be booked before the meeting is created (best-effort), and admin/comped
      * sessions may have none.
      */
@@ -102,14 +102,14 @@ export const sessions = pgTable(
      */
     check(
       'sessions_amount_split_balances',
-      sql`${t.amountCents} = ${t.commissionCents} + ${t.coachPayoutCents}`,
+      sql`${t.amountCents} = ${t.commissionCents} + ${t.mentorPayoutCents}`,
     ),
     check('sessions_amount_positive', sql`${t.amountCents} > 0`),
     check('sessions_commission_non_negative', sql`${t.commissionCents} >= 0`),
-    check('sessions_payout_non_negative', sql`${t.coachPayoutCents} >= 0`),
+    check('sessions_payout_non_negative', sql`${t.mentorPayoutCents} >= 0`),
 
     /** §12 dashboards, both roles. */
-    index('sessions_coach_start_idx').on(t.coachId, t.scheduledStart),
+    index('sessions_mentor_start_idx').on(t.mentorId, t.scheduledStart),
     index('sessions_student_start_idx').on(t.studentId, t.scheduledStart),
     /** §11 completion cron. */
     index('sessions_status_end_idx').on(t.status, t.scheduledEnd),
@@ -117,7 +117,7 @@ export const sessions = pgTable(
   ],
 )
 
-/** Spec §12 — brief post-session notes from the coach, visible to that student. */
+/** Spec §12 — brief post-session notes from the mentor, visible to that student. */
 export const sessionNotes = pgTable(
   'session_notes',
   {
@@ -127,7 +127,7 @@ export const sessionNotes = pgTable(
       .notNull()
       .references(() => sessions.id, { onDelete: 'cascade' }),
 
-    coachId: uuid('coach_id')
+    mentorId: uuid('mentor_id')
       .notNull()
       .references(() => users.id, { onDelete: 'restrict' }),
 
@@ -143,14 +143,14 @@ export const sessionNotes = pgTable(
 )
 
 export const sessionsRelations = relations(sessions, ({ one, many }) => ({
-  coach: one(users, { fields: [sessions.coachId], references: [users.id], relationName: 'session_coach' }),
+  mentor: one(users, { fields: [sessions.mentorId], references: [users.id], relationName: 'session_mentor' }),
   student: one(users, { fields: [sessions.studentId], references: [users.id], relationName: 'session_student' }),
-  offering: one(coachOfferings, { fields: [sessions.offeringId], references: [coachOfferings.id] }),
-  link: one(coachStudentLinks, { fields: [sessions.linkId], references: [coachStudentLinks.id] }),
+  offering: one(mentorOfferings, { fields: [sessions.offeringId], references: [mentorOfferings.id] }),
+  link: one(mentorStudentLinks, { fields: [sessions.linkId], references: [mentorStudentLinks.id] }),
   notes: many(sessionNotes),
 }))
 
 export const sessionNotesRelations = relations(sessionNotes, ({ one }) => ({
   session: one(sessions, { fields: [sessionNotes.sessionId], references: [sessions.id] }),
-  coach: one(users, { fields: [sessionNotes.coachId], references: [users.id] }),
+  mentor: one(users, { fields: [sessionNotes.mentorId], references: [users.id] }),
 }))

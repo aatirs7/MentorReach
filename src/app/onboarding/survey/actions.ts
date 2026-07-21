@@ -73,7 +73,7 @@ export async function submitSurvey(_prev: SurveyState, formData: FormData): Prom
     .values(values)
     .onConflictDoUpdate({ target: studentSurveys.userId, set: values })
 
-  redirect('/coaches')
+  redirect('/mentors')
 }
 
 /** Load an in-progress or completed survey so the form can be resumed/edited. */

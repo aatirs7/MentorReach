@@ -13,7 +13,7 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { Textarea } from '@/components/ui/textarea'
-import { formatPrice } from '@/lib/coach-schema'
+import { formatPrice } from '@/lib/mentor-schema'
 import { canCancel, isScheduled, refundEligibility, type SessionStatus, statusLabel, statusTone } from '@/lib/sessions'
 
 export type SessionView = {
@@ -28,7 +28,7 @@ export type SessionView = {
   notes: Array<{ id: string; body: string; createdAt: string }>
 }
 
-export function SessionCard({ session, viewerRole }: { session: SessionView; viewerRole: 'student' | 'coach' }) {
+export function SessionCard({ session, viewerRole }: { session: SessionView; viewerRole: 'student' | 'mentor' }) {
   const [cancelState, cancelAction, canceling] = useActionState<ActionState, FormData>(
     cancelSessionAction,
     {},
@@ -62,9 +62,9 @@ export function SessionCard({ session, viewerRole }: { session: SessionView; vie
         <div className="text-right">
           <Badge variant={statusTone(session.status)}>{statusLabel(session.status)}</Badge>
           <p className="mt-2 font-display text-lg">
-            {formatPrice(viewerRole === 'coach' ? session.payoutCents : session.amountCents)}
+            {formatPrice(viewerRole === 'mentor' ? session.payoutCents : session.amountCents)}
           </p>
-          {viewerRole === 'coach' ? <p className="text-xs text-slate">your payout</p> : null}
+          {viewerRole === 'mentor' ? <p className="text-xs text-slate">your payout</p> : null}
         </div>
       </div>
 
@@ -83,7 +83,7 @@ export function SessionCard({ session, viewerRole }: { session: SessionView; vie
 
       {session.notes.length > 0 ? (
         <div className="mt-4 border-t border-line/15 pt-4">
-          <p className="label-mono">Notes from your coach</p>
+          <p className="label-mono">Notes from your mentor</p>
           {session.notes.map((n) => (
             <p key={n.id} className="mt-2 text-sm leading-relaxed whitespace-pre-line text-ink/90">
               {n.body}
@@ -92,8 +92,8 @@ export function SessionCard({ session, viewerRole }: { session: SessionView; vie
         </div>
       ) : null}
 
-      {/* §12 — notes are the coach's to write, and always available. */}
-      {viewerRole === 'coach' ? (
+      {/* §12 — notes are the mentor's to write, and always available. */}
+      {viewerRole === 'mentor' ? (
         writingNote ? (
           <form action={noteAction} className="mt-4 border-t border-line/15 pt-4">
             <input type="hidden" name="sessionId" value={session.id} />

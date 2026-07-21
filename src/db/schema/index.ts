@@ -1,19 +1,19 @@
 /**
  * MentorReach — core schema (spec §4).
  *
- * FK CONVENTION: every `coach_id` / `student_id` column in every table references
- * `users.id`, never `coach_profiles.id`. Join to coach_profiles via its `user_id`.
+ * FK CONVENTION: every `mentor_id` / `student_id` column in every table references
+ * `users.id`, never `mentor_profiles.id`. Join to mentor_profiles via its `user_id`.
  * See the header comment in ./users.ts.
  *
- * §2.2's hard rule is encoded by UNIQUE(coach_id, student_id) on coach_student_links
- * (frozen commission). §2.4's approval gate was intentionally dropped — coaches now
- * self-publish once complete; see src/lib/coach-publish.ts and docs/spec-coverage.md.
+ * §2.2's hard rule is encoded by UNIQUE(mentor_id, student_id) on mentor_student_links
+ * (frozen commission). §2.4's approval gate was intentionally dropped — mentors now
+ * self-publish once complete; see src/lib/mentor-publish.ts and docs/spec-coverage.md.
  */
 
 export * from './enums'
 export * from './users'
 export * from './surveys'
-export * from './coaches'
+export * from './mentors'
 export * from './links'
 export * from './sessions'
 export * from './trust'
@@ -26,7 +26,7 @@ export * from './availability'
  * DEFERRED — spec §4 "Phase 1.5":
  *
  *   subscriptions
- *     id, student_id (fk), coach_id (fk),
+ *     id, student_id (fk), mentor_id (fk),
  *     stripe_subscription_id, credits_remaining,
  *     status, current_period_end
  *
