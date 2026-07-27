@@ -144,9 +144,10 @@ Book button is disabled with an honest reason rather than failing at checkout.
 - `/admin/legal` — founder-facing document library + company record: entity facts (EIN read
   from the `COMPANY_EIN` env var, set in Vercel + `.env.local`, kept out of the public repo),
   and each legal doc with a plain-English status (Ready / Draft — attorney review / Needs a
-  legal decision), a **View** link (opens `/legal/<slug>`), and a **Download** button (a
-  print-ready HTML built from the markdown via `marked`, served as an attachment). Distinct
-  from `/admin/agreements` (who-accepted-what).
+  legal decision), a **View** link (opens `/legal/<slug>`), and a **Download** button that
+  serves a formatted **PDF** (`src/lib/legal-pdf.tsx` — `@react-pdf/renderer`, pure JS so it
+  runs on Vercel without headless Chrome; markdown mapped to PDF via marked's lexer).
+  Distinct from `/admin/agreements` (who-accepted-what).
 
 ### Internal
 - `/ops` — shared founder task board (labeled **Task Board** in the console nav, which the
