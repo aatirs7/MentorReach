@@ -1,65 +1,53 @@
-import { sql } from 'drizzle-orm'
 import Link from 'next/link'
 import { ConsoleHeader } from '@/components/console-shell'
 import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
-import { db } from '@/db'
-import { legalAcceptances } from '@/db/schema'
 import { requireAdmin } from '@/lib/auth/guards'
 import { COMPANY } from '@/lib/company'
-import { allDocuments } from '@/lib/legal'
+import { allDocuments, type LegalKey } from '@/lib/legal'
 import { NO_INDEX } from '@/lib/seo'
 
 export const metadata = { title: 'Legal', ...NO_INDEX }
 export const dynamic = 'force-dynamic'
 
+/** One plain-English line per document, so the list explains itself. */
+const DESCRIPTIONS: Record<LegalKey, string> = {
+  terms: 'The agreement every user accepts to use MentorReach.',
+  privacy: 'What information we collect and how we handle it.',
+  refunds: 'When a session can be cancelled and refunded.',
+  mentor_agreement: 'The contract every mentor signs before going live.',
+  mentor_handbook: 'The conduct standards mentors agree to follow.',
+}
+
 /**
- * The legal document library and the company entity record.
+ * The company record and the legal documents, for the two founders.
  *
- * Distinct from /admin/agreements, which is the ACCEPTANCE REGISTER (who agreed to what,
- * when). This is the library: the documents themselves, their current version and content
- * hash, whether any bracketed placeholder is still unresolved, and the entity facts that
- * fill their contact sections. Read-only — the documents are versioned markdown in the
- * repo, edited there and locked by src/lib/legal.test.ts, not from a form.
+ * Founder-facing on purpose: no content hashes, no "placeholder" jargon. A document is
+ * either ready, waiting on a lawyer, or waiting on a specific decision — said in words.
+ * View opens the document in the browser; Download saves a print-ready copy.
  */
 export default async function AdminLegalPage() {
   await requireAdmin()
 
   const docs = allDocuments()
-
-  // Current-version acceptance counts, one grouped query rather than one per document.
-  const counts = await db
-    .select({
-      key: legalAcceptances.documentKey,
-      version: legalAcceptances.documentVersion,
-      n: sql<number>`COUNT(*)::int`,
-    })
-    .from(legalAcceptances)
-    .groupBy(legalAcceptances.documentKey, legalAcceptances.documentVersion)
-
-  const acceptedNow = (key: string, version: string) =>
-    counts.find((c) => c.key === key && c.version === version)?.n ?? 0
-
-  /**
-   * The EIN is not in the repo (this is a public repository). Set COMPANY_EIN in
-   * .env.local and Vercel to surface it here; otherwise the row says so plainly rather
-   * than showing a blank that reads as "we don't have one".
-   */
   const ein = process.env.COMPANY_EIN?.trim() || null
 
-  const anyPlaceholders = docs.some((d) => d.placeholders.length > 0)
+  // The one genuinely-open item across the whole set: how disputes are handled. It lives
+  // in the two documents that contain a "[CHOOSE ONE, WITH COUNSEL:]" marker.
+  const awaitingDecision = docs.some((d) => d.content.includes('[CHOOSE ONE'))
 
   return (
-    <main className="mx-auto w-full max-w-5xl px-6 py-10">
+    <main className="mx-auto w-full max-w-4xl px-6 py-10">
       <ConsoleHeader
         title="Legal"
-        description="The company record and the current legal documents. Acceptances live under Agreements."
+        description="Your company record and the legal documents behind the platform."
         action={
           <Link
             href="/admin/agreements"
             className="text-sm text-slate underline decoration-gold underline-offset-4 hover:text-ink"
           >
-            Go to the acceptance register
+            See who has signed what
           </Link>
         }
       />
@@ -82,22 +70,11 @@ export default async function AdminLegalPage() {
               year: 'numeric',
             })}
           />
+          <Field label="EIN" value={ein ?? 'Set COMPANY_EIN to display'} mono={Boolean(ein)} muted={!ein} />
           <Field label="Federal tax classification" value={COMPANY.taxClassification} />
-          <Field label="Registered address" value={COMPANY.registeredAddress} />
           <Field label="Support email" value={COMPANY.supportEmail} />
-          <Field
-            label="EIN"
-            value={ein ?? 'Not shown — set COMPANY_EIN to display'}
-            mono={Boolean(ein)}
-            muted={!ein}
-          />
+          <Field label="Registered address" value={COMPANY.registeredAddress} />
         </dl>
-
-        <p className="mt-5 border-t border-line/15 pt-4 text-xs leading-relaxed text-slate">
-          Public-record details from the Virginia SCC filing. The EIN is kept out of this
-          (public) repository — it lives in the CP&#8209;575 notice and, if set, the COMPANY_EIN
-          environment variable.
-        </p>
       </Card>
 
       {/* ------------------------------------------------------------- documents */}
@@ -106,61 +83,58 @@ export default async function AdminLegalPage() {
         <span className="font-mono text-xs text-slate">{docs.length}</span>
       </div>
 
-      {anyPlaceholders ? (
-        <p className="mt-4 rounded-lg border-l-2 border-[#8a6524] bg-sand px-4 py-3 text-sm text-ink">
-          One or more documents still contain an unresolved <code className="font-mono text-xs">[BRACKET]</code>{' '}
-          placeholder. A document with placeholders is not ready to publish or to have anyone sign.
-        </p>
-      ) : null}
+      <p className="mt-4 text-sm leading-relaxed text-slate">
+        Your company details are filled into all of these. They are still marked{' '}
+        <span className="text-ink">draft</span> because a lawyer should review them before you publish
+        them or have any mentor sign.
+        {awaitingDecision ? (
+          <>
+            {' '}
+            One decision is also still open — <span className="text-ink">how disputes are handled</span>{' '}
+            (court vs. arbitration) — in the Terms and the Mentor Agreement.
+          </>
+        ) : null}
+      </p>
 
       <ul className="mt-6 space-y-3">
         {docs.map((doc) => {
-          const accepted = acceptedNow(doc.key, doc.version)
-          const open = doc.placeholders.length > 0
+          const needsDecision = doc.content.includes('[CHOOSE ONE')
+          const isDraft = doc.content.includes('DRAFT.')
           return (
             <li key={doc.key}>
               <Card className="border-line/20 bg-raised p-5">
-                <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-2">
-                  <div className="flex items-baseline gap-3">
-                    <h3 className="text-lg">{doc.title}</h3>
-                    <span className="font-mono text-xs text-slate">v{doc.version}</span>
+                <div className="flex flex-wrap items-start justify-between gap-x-4 gap-y-3">
+                  <div className="min-w-0">
+                    <div className="flex items-baseline gap-3">
+                      <h3 className="text-lg">{doc.title}</h3>
+                      <span className="font-mono text-xs text-slate">v{doc.version}</span>
+                      {needsDecision ? (
+                        <Badge className="border-[#8a6524] bg-transparent text-[#8a6524]">
+                          Needs a legal decision
+                        </Badge>
+                      ) : isDraft ? (
+                        <Badge className="border-slate/40 bg-transparent text-slate">
+                          Draft — attorney review
+                        </Badge>
+                      ) : (
+                        <Badge className="border-[#3f6b4f] bg-transparent text-[#3f6b4f]">Ready</Badge>
+                      )}
+                    </div>
+                    <p className="mt-1.5 text-sm text-slate">{DESCRIPTIONS[doc.key]}</p>
                   </div>
-                  <div className="flex items-center gap-2">
-                    {open ? (
-                      <Badge className="border-[#8a6524] bg-transparent text-[#8a6524]">
-                        {doc.placeholders.length} placeholder{doc.placeholders.length === 1 ? '' : 's'}
-                      </Badge>
-                    ) : (
-                      <Badge className="border-[#3f6b4f] bg-transparent text-[#3f6b4f]">Filled</Badge>
-                    )}
-                    <Link
-                      href={`/legal/${doc.slug}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-sm text-slate underline decoration-gold underline-offset-4 hover:text-ink"
-                    >
-                      Read →
-                    </Link>
+
+                  <div className="flex shrink-0 items-center gap-2">
+                    <Button asChild size="sm" variant="outline">
+                      <a href={`/legal/${doc.slug}`} target="_blank" rel="noopener noreferrer">
+                        View
+                      </a>
+                    </Button>
+                    <Button asChild size="sm">
+                      {/* Native download — the route sets Content-Disposition: attachment. */}
+                      <a href={`/admin/legal/${doc.slug}/download`}>Download</a>
+                    </Button>
                   </div>
                 </div>
-
-                <dl className="mt-4 flex flex-wrap gap-x-8 gap-y-2 text-xs text-slate">
-                  <span>
-                    Effective <span className="text-ink">{doc.effectiveDate}</span>
-                  </span>
-                  <span>
-                    Current acceptances <span className="text-ink tabular-nums">{accepted}</span>
-                  </span>
-                  <span className="font-mono" title={doc.contentHash}>
-                    sha256 <span className="text-ink">{doc.contentHash.slice(0, 12)}…</span>
-                  </span>
-                </dl>
-
-                {open ? (
-                  <p className="mt-3 text-xs text-slate">
-                    Unresolved: <span className="text-ink">{doc.placeholders.join('  ·  ')}</span>
-                  </p>
-                ) : null}
               </Card>
             </li>
           )

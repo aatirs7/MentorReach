@@ -137,12 +137,16 @@ Book button is disabled with an honest reason rather than failing at checkout.
   mirrored in `liveMentorSql()` so browse and the checklist cannot disagree
 - `/admin/agreements` — the register: every acceptance, filterable by document, flagging
   signatures made against an outdated version
-- `/admin/legal` — the document library + company record: entity facts, each doc's version,
-  content hash, unresolved-placeholder flag, and current-version acceptance count. Distinct
-  from `/admin/agreements` (which is who-accepted-what); this is the documents themselves.
+- `/admin/legal` — founder-facing document library + company record: entity facts (EIN read
+  from the `COMPANY_EIN` env var, set in Vercel + `.env.local`, kept out of the public repo),
+  and each legal doc with a plain-English status (Ready / Draft — attorney review / Needs a
+  legal decision), a **View** link (opens `/legal/<slug>`), and a **Download** button (a
+  print-ready HTML built from the markdown via `marked`, served as an attachment). Distinct
+  from `/admin/agreements` (who-accepted-what).
 
 ### Internal
-- `/ops` — shared founder task board, two-level hierarchy (workstream → sub-task). The old
+- `/ops` — shared founder task board (labeled **Task Board** in the console nav, which the
+  founders reordered to put it centrally). Two-level hierarchy (workstream → sub-task). The old
   `/ops/overview` page was **merged in**: its per-founder progress summary is now the two
   clickable cards at the top of the board (click one to filter to that person's work, which
   includes shared "Both" tasks). `/ops/overview` 308-redirects to `/ops`.
@@ -164,11 +168,12 @@ Book button is disabled with an honest reason rather than failing at checkout.
 - Structured data: Organization, WebSite, Person, Service, Offer, Breadcrumbs, FAQ
 - 28 private routes marked `noindex`
 
-**Seed mentors are excluded from all of it** — no sitemap entry, `noindex`, and no `Person`
-structured data. Every mentor currently on the site is invented and carries a real employer's
-name, so indexing them would ask Google to catalogue fabricated professionals under this
-domain. `liveMentorSql()` still treats them as live, because "visible to a person" and "safe
-to hand a crawler" are different questions.
+**The 6 seed mentors were deleted** (2026-07-27) — they were fabricated people carrying real
+employer names (Stripe, Figma, Evercore, SpaceX, CrowdStrike, Wieden+Kennedy) on
+`@demo.trajectorycoaches.com` addresses. Public browse is now **empty** (0 live mentors),
+which is the correct pre-launch state. The seed-exclusion machinery in `sitemapMentors()` /
+`liveMentorSql()` (the `is_seed` filter) is still in place and harmless — if seed rows are
+ever reintroduced for a demo, they stay out of the sitemap and structured data.
 
 ---
 

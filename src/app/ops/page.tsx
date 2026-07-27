@@ -5,7 +5,7 @@ import { db } from '@/db'
 import { tasks } from '@/db/schema'
 import { NO_INDEX } from '@/lib/seo'
 
-export const metadata = { title: 'MentorReach Ops', ...NO_INDEX }
+export const metadata = { title: 'Task Board', ...NO_INDEX }
 export const dynamic = 'force-dynamic'
 
 /**

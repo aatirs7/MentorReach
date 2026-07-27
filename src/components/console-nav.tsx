@@ -8,17 +8,20 @@ import { usePathname } from 'next/navigation'
  * two stop feeling like separate areas. Rendered by both the /admin and /ops layouts.
  */
 const ITEMS = [
+  // Order requested by the founders; Task Board sits centrally. Dashboard leads as the
+  // console home (it was the one tab not named in the request). `exact` on /ops keeps it
+  // from lighting up for /ops/applications and /ops/expenses, which share the prefix.
   { href: '/admin', label: 'Dashboard', exact: true },
   { href: '/admin/mentors', label: 'Mentors' },
   { href: '/admin/students', label: 'Students' },
-  { href: '/ops/applications', label: 'Applications' },
-  { href: '/admin/agreements', label: 'Agreements' },
-  { href: '/admin/legal', label: 'Legal' },
-  { href: '/admin/reports', label: 'Reports' },
   { href: '/admin/users', label: 'Accounts' },
-  { href: '/admin/integrations', label: 'Integrations' },
-  { href: '/ops', label: 'Ops board', exact: true },
+  { href: '/ops/applications', label: 'Applications' },
   { href: '/ops/expenses', label: 'Expenses' },
+  { href: '/ops', label: 'Task Board', exact: true },
+  { href: '/admin/integrations', label: 'Integrations' },
+  { href: '/admin/agreements', label: 'Agreements' },
+  { href: '/admin/reports', label: 'Reports' },
+  { href: '/admin/legal', label: 'Legal' },
   // LLC setup is hidden from the nav for now but still reachable at /ops/llc — the page
   // and its gate are untouched, so re-adding the tab is a one-line change here.
   // { href: '/ops/llc', label: 'LLC setup' },
