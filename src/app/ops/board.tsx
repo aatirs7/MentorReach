@@ -33,9 +33,27 @@ export type OpsTaskView = {
   owner: string
   status: OpsStatus
   thisWeek: boolean
+  /** Who ticked it off — for the "closed by them" count, distinct from owner. Null on old rows. */
+  completedBy: string | null
 }
 
 type OwnerFilter = 'All' | OpsOwner
+
+/** The two people. Fixed, not derived — "Isaiah has no open work" is a real, useful state. */
+const FOUNDERS = ['Aatir', 'Isaiah'] as const
+
+/**
+ * Does a task match the active owner filter?
+ *
+ * Filtering to a founder includes work owned by "Both": shared work is theirs too, and the
+ * overview this board absorbed counted it that way. "Both" and "Unassigned" match exactly —
+ * they are for isolating shared or orphaned work, so widening them would defeat the point.
+ */
+function ownerMatches(taskOwner: string, filter: OwnerFilter): boolean {
+  if (filter === 'All') return true
+  if (filter === 'Aatir' || filter === 'Isaiah') return taskOwner === filter || taskOwner === 'Both'
+  return taskOwner === filter
+}
 
 export function OpsBoard({ tasks }: { tasks: OpsTaskView[] }) {
   const [ownerFilter, setOwnerFilter] = useState<OwnerFilter>('All')
@@ -66,10 +84,38 @@ export function OpsBoard({ tasks }: { tasks: OpsTaskView[] }) {
     if (ownerFilter === 'All') return tasks
     return tasks.filter(
       (t) =>
-        t.owner === ownerFilter ||
-        (childrenOf.get(t.id) ?? []).some((c) => c.owner === ownerFilter),
+        ownerMatches(t.owner, ownerFilter) ||
+        (childrenOf.get(t.id) ?? []).some((c) => ownerMatches(c.owner, ownerFilter)),
     )
   }, [tasks, ownerFilter, childrenOf])
+
+  /**
+   * Per-founder progress, computed over ALL tasks (parents and children) so a workstream
+   * owned by "Both" still credits the items inside it. This is the summary the separate
+   * "Task overview" page used to hold, folded into the board so there is one place to look.
+   * Completion is credited to `completedBy`, falling back to `owner` for rows finished
+   * before that column existed.
+   */
+  const founderStats = useMemo(
+    () =>
+      FOUNDERS.map((person) => {
+        const theirs = tasks.filter((t) => t.owner === person || t.owner === 'Both')
+        const done = theirs.filter((t) => t.status === 'done').length
+        const closed = tasks.filter(
+          (t) => t.status === 'done' && (t.completedBy ?? t.owner) === person,
+        ).length
+        return {
+          person,
+          total: theirs.length,
+          done,
+          todo: theirs.filter((t) => t.status === 'todo').length,
+          inProgress: theirs.filter((t) => t.status === 'in_progress').length,
+          closed,
+          pct: theirs.length ? Math.round((done / theirs.length) * 100) : 0,
+        }
+      }),
+    [tasks],
+  )
 
   const doneCount = tasks.filter((t) => t.status === 'done').length
   const thisWeek = visible.filter((t) => t.thisWeek && t.status !== 'done')
@@ -84,10 +130,51 @@ export function OpsBoard({ tasks }: { tasks: OpsTaskView[] }) {
           </p>
         </div>
 
-        {/* Controls */}
+        {/* Per-founder summary — click a card to filter the board to that person's work. */}
+        <div className="mt-6 grid gap-4 sm:grid-cols-2">
+          {founderStats.map((s) => {
+            const active = ownerFilter === s.person
+            return (
+              <button
+                key={s.person}
+                type="button"
+                onClick={() => setOwnerFilter(active ? 'All' : s.person)}
+                aria-pressed={active}
+                className={`rounded-xl border bg-raised p-5 text-left transition-colors ${
+                  active ? 'border-gold' : 'border-line/20 hover:border-gold/50'
+                }`}
+              >
+                <div className="flex items-center justify-between gap-3">
+                  <h2 className="text-xl">{s.person}</h2>
+                  <span
+                    className={`rounded-full px-2.5 py-1 font-mono text-[10px] tracking-wide uppercase ${ownerTone(
+                      s.person,
+                    )}`}
+                  >
+                    {s.done}/{s.total} done
+                  </span>
+                </div>
+                <div
+                  className="mt-3 h-1.5 w-full overflow-hidden rounded-full bg-sand-deep"
+                  role="img"
+                  aria-label={`${s.pct}% of ${s.person}'s tasks complete`}
+                >
+                  <div className="h-full rounded-full bg-gold" style={{ width: `${s.pct}%` }} />
+                </div>
+                <dl className="mt-4 grid grid-cols-3 gap-3 text-center">
+                  <Stat label="To do" value={s.todo} />
+                  <Stat label="In progress" value={s.inProgress} />
+                  <Stat label="Closed by them" value={s.closed} />
+                </dl>
+              </button>
+            )
+          })}
+        </div>
+
+        {/* Controls — the founder cards above cover Aatir/Isaiah; these are the rest. */}
         <div className="mt-6 flex flex-wrap items-center gap-4 border-y border-line/15 py-4">
           <div className="flex items-center gap-1.5">
-            {(['All', ...OPS_OWNERS] as OwnerFilter[]).map((o) => (
+            {(['All', 'Both', 'Unassigned'] as OwnerFilter[]).map((o) => (
               <button
                 key={o}
                 type="button"
@@ -100,6 +187,11 @@ export function OpsBoard({ tasks }: { tasks: OpsTaskView[] }) {
               </button>
             ))}
           </div>
+          {ownerFilter !== 'All' && ownerFilter !== 'Both' && ownerFilter !== 'Unassigned' ? (
+            <span className="text-sm text-slate">
+              Showing <span className="text-ink">{ownerFilter}</span>
+            </span>
+          ) : null}
           <label className="ml-auto flex items-center gap-2 text-sm text-slate">
             <input
               type="checkbox"
@@ -186,6 +278,15 @@ export function OpsBoard({ tasks }: { tasks: OpsTaskView[] }) {
         </div>
       </div>
     </main>
+  )
+}
+
+function Stat({ label, value }: { label: string; value: number }) {
+  return (
+    <div>
+      <dt className="label-mono text-[10px]">{label}</dt>
+      <dd className="mt-1 font-display text-2xl tabular-nums">{value}</dd>
+    </div>
   )
 }
 

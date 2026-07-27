@@ -28,6 +28,9 @@ const nextConfig: NextConfig = {
       { source: '/coach/:path*', destination: '/mentor/:path*', permanent: true },
       { source: '/admin/coaches', destination: '/admin/mentors', permanent: true },
       { source: '/admin/coaches/:path*', destination: '/admin/mentors/:path*', permanent: true },
+      // The task overview was merged into the ops board — its per-founder summary now lives
+      // at the top of /ops. Redirect any bookmark rather than 404.
+      { source: '/ops/overview', destination: '/ops', permanent: true },
     ]
   },
   experimental: {

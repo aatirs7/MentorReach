@@ -34,6 +34,7 @@ export default async function OpsPage() {
     owner: t.owner,
     status: t.status as OpsTaskView['status'],
     thisWeek: t.thisWeek,
+    completedBy: t.completedBy,
   }))
 
   return <OpsBoard tasks={view} />

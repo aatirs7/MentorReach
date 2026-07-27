@@ -13,11 +13,11 @@ const ITEMS = [
   { href: '/admin/students', label: 'Students' },
   { href: '/ops/applications', label: 'Applications' },
   { href: '/admin/agreements', label: 'Agreements' },
+  { href: '/admin/legal', label: 'Legal' },
   { href: '/admin/reports', label: 'Reports' },
   { href: '/admin/users', label: 'Accounts' },
   { href: '/admin/integrations', label: 'Integrations' },
   { href: '/ops', label: 'Ops board', exact: true },
-  { href: '/ops/overview', label: 'Task overview' },
   { href: '/ops/expenses', label: 'Expenses' },
   // LLC setup is hidden from the nav for now but still reachable at /ops/llc — the page
   // and its gate are untouched, so re-adding the tab is a one-line change here.

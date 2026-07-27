@@ -19,22 +19,27 @@ import { LEGAL_KEYS, allDocuments, getDocument, keyForSlug } from './legal'
  * Anyone who signed the previous version is expected to re-sign — see docs/HANDOFF.md.
  */
 const LOCKED: Record<string, { version: string; hash: string }> = {
+  // 1.1.0 filled the LLC placeholders (entity name, Virginia, registered address,
+  // Loudoun County, support email) from the official formation documents. The 1.0.0
+  // placeholder drafts are preserved under src/content/legal/archive/<key>/1.0.0.md.
+  // The dispute-resolution clause ([CHOOSE ONE, WITH COUNSEL:]) is still open by design.
   terms: {
-    version: '1.0.0',
-    hash: 'c3d3f6d0975907666eb3ded4286fd072d3c53f4b79dc57a47f19c688cdbad3e8',
+    version: '1.1.0',
+    hash: '77eb66e6578ff1a730fa7096007cfc1201e91c0317057c9e4bf6613391866b6f',
   },
   privacy: {
-    version: '1.0.0',
-    hash: 'd317fa8b1faaf04a38afd57b77d56149277672fd44bf5c2671778879f8804bb6',
+    version: '1.1.0',
+    hash: '4da951c4870c239cd306b83001b6342c1799efe7a67c4287ebf208802c01c79b',
   },
   refunds: {
-    version: '1.0.0',
-    hash: '1dddbb3b7d3a1063cb5e016941a22e915ed0565d5745f818a34e75341c44240a',
+    version: '1.1.0',
+    hash: '40fe8fb51c6cc4f3fc4cb53645d438fbbd874cd2c30cfca0daa3dddef5af7363',
   },
   mentor_agreement: {
-    version: '1.0.0',
-    hash: 'e062120b77b116fc7285264e341bab7f09fc72b5269a7b68cc1fcee9cc36355f',
+    version: '1.1.0',
+    hash: '2d1d4b3b56fdec8e3e83e7e6f435a294c6e8586805fe241532d32631f734ff5e',
   },
+  // Unchanged — the handbook had no placeholders to fill.
   mentor_handbook: {
     version: '1.0.0',
     hash: '0b433b7ea0db0fcc16dd3755a3bf5333f76ea40606d0ce978d1ffc8e0b867d89',

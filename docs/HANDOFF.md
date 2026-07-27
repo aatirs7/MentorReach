@@ -112,6 +112,19 @@ Book button is disabled with an honest reason rather than failing at checkout.
 - 24-hour cancellation policy; **we** decide refunds, not any external tool
 
 ### Legal and consent
+- **The LLC is formed: MentorReach LLC**, a Virginia LLC (SCC ID 12050080, effective
+  2026-07-21), EIN on the IRS CP-575, filed as a multi-member partnership (Form 1065).
+  Registered address 44056 Riverpoint Drive, Leesburg, VA 20176. Entity facts live in
+  `src/lib/company.ts` (public record); the **EIN is deliberately not in the repo** (it is
+  public on GitHub) — set `COMPANY_EIN` to surface it on `/admin/legal`.
+- Four legal docs bumped **1.0.0 → 1.1.0** with the LLC placeholders filled (entity name,
+  Virginia, registered address, Loudoun County, `support@mentorreach.com`, and the
+  commission-notice / non-circ terms). The 1.0.0 placeholder drafts are preserved under
+  `src/content/legal/archive/<key>/1.0.0.md`. Handbook unchanged (had no placeholders).
+- **Still open, on purpose:** the dispute-resolution clause (`[CHOOSE ONE, WITH COUNSEL:]`
+  courts vs. arbitration) in Terms §16 and Mentor Agreement §14 is left for counsel; the
+  `> DRAFT — review by an attorney before publishing` banner stays until that is resolved.
+  `/admin/legal` flags any doc still carrying a placeholder.
 - Five documents at `/legal/*`, public and indexable, versioned with a content hash
 - **Students and mentors** accept Terms + Privacy via a required checkbox at role
   selection; `setRole()` writes both acceptance rows server-side
@@ -124,11 +137,15 @@ Book button is disabled with an honest reason rather than failing at checkout.
   mirrored in `liveMentorSql()` so browse and the checklist cannot disagree
 - `/admin/agreements` — the register: every acceptance, filterable by document, flagging
   signatures made against an outdated version
+- `/admin/legal` — the document library + company record: entity facts, each doc's version,
+  content hash, unresolved-placeholder flag, and current-version acceptance count. Distinct
+  from `/admin/agreements` (which is who-accepted-what); this is the documents themselves.
 
 ### Internal
-- `/ops` — shared founder task board, two-level hierarchy (workstream → sub-task)
-- `/ops/overview` — per-founder dashboard: progress, completion timeline, open work.
-  Click a founder to filter (`?who=Aatir`)
+- `/ops` — shared founder task board, two-level hierarchy (workstream → sub-task). The old
+  `/ops/overview` page was **merged in**: its per-founder progress summary is now the two
+  clickable cards at the top of the board (click one to filter to that person's work, which
+  includes shared "Both" tasks). `/ops/overview` 308-redirects to `/ops`.
 - `/ops/expenses` — business expense ledger. DB-backed (`expenses` table), founders-only.
   Log a spend (date, description, vendor, amount, category, who paid, receipt link, notes);
   summaries by month and by category; "owed back" tile totals unreimbursed personal spend
