@@ -12,7 +12,7 @@ import { ImageResponse } from 'next/og'
  * cost on a route whose entire job is to be scraped once per link, and a silent failure
  * mode if the fetch is slow. Weight and scale carry the brand here instead.
  */
-export const alt = "MentorReach — Reach the people who've been there."
+export const alt = "MentorReach: Reach the people who've been there."
 export const size = { width: 1200, height: 630 }
 export const contentType = 'image/png'
 

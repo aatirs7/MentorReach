@@ -21,6 +21,8 @@ type Row = {
   live: boolean
   envVars: string[]
   whenMissing: string
+  /** Required at boot — the app cannot start without it, so it is always live if you can see this page. */
+  required?: boolean
 }
 
 export default async function IntegrationsPage() {
@@ -29,6 +31,20 @@ export default async function IntegrationsPage() {
   const s = integrationStatus()
 
   const rows: Row[] = [
+    {
+      name: 'Neon Postgres (database)',
+      live: true,
+      required: true,
+      envVars: ['DATABASE_URL'],
+      whenMissing: 'The app will not boot without it — if you are reading this, it is connected.',
+    },
+    {
+      name: 'Clerk sign-in (§3)',
+      live: true,
+      required: true,
+      envVars: ['CLERK_SECRET_KEY', 'NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY'],
+      whenMissing: 'Required at boot — authentication would be impossible without it.',
+    },
     {
       name: 'Clerk webhooks (§3)',
       live: s.clerkWebhook,
@@ -63,6 +79,13 @@ export default async function IntegrationsPage() {
       whenMissing: 'No emails send. In-app notifications still work, and they’re the durable record.',
     },
     {
+      name: 'Vercel Blob (uploads)',
+      live: s.storage,
+      envVars: ['BLOB_READ_WRITE_TOKEN'],
+      whenMissing:
+        'Mentor headshot and resume uploads fail with a clear error. Everything else works. This token is auto-added when a Blob store is linked to the project in the Vercel dashboard.',
+    },
+    {
       name: 'Cron: session completion (§11)',
       live: s.cron,
       envVars: ['CRON_SECRET'],
@@ -79,6 +102,13 @@ export default async function IntegrationsPage() {
         title="Integrations"
         description="Everything here degrades quietly when unconfigured, so the app runs before the accounts exist. That's useful in development and hazardous at launch, so this page is the check."
       />
+
+      <p className="mx-auto mt-4 max-w-2xl text-center text-xs leading-relaxed text-slate">
+        “Live” means the key is set — not that the integration is verified end-to-end. A webhook
+        secret can be present while the webhook itself was never registered in the provider’s
+        dashboard, or an email domain can be unverified. Treat this as a configuration check, then
+        confirm the ones that matter in each provider.
+      </p>
 
       <Card
         className={`mt-8 border-line/20 p-6 ${ready ? '' : 'border-gold bg-secondary'}`}
@@ -100,9 +130,14 @@ export default async function IntegrationsPage() {
           <Card key={r.name} className="border-line/20 p-5">
             <div className="flex flex-wrap items-start justify-between gap-3">
               <h2 className="text-lg leading-snug">{r.name}</h2>
-              <Badge variant={r.live ? 'default' : 'secondary'}>
-                {r.live ? 'Live' : 'Not configured'}
-              </Badge>
+              <div className="flex items-center gap-2">
+                {r.required ? (
+                  <span className="font-mono text-[10px] tracking-wide text-slate uppercase">Required</span>
+                ) : null}
+                <Badge variant={r.live ? 'default' : 'secondary'}>
+                  {r.live ? 'Live' : 'Not configured'}
+                </Badge>
+              </div>
             </div>
 
             <div className="mt-3 flex flex-wrap gap-2">

@@ -48,7 +48,7 @@ export const metadata: Metadata = {
    */
   metadataBase: new URL(siteUrl()),
   title: {
-    default: `MentorReach — ${TAGLINE}`,
+    default: `MentorReach: ${TAGLINE}`,
     template: '%s · MentorReach',
   },
   description: DESCRIPTION,
@@ -57,14 +57,14 @@ export const metadata: Metadata = {
   openGraph: {
     type: 'website',
     siteName: 'MentorReach',
-    title: `MentorReach — ${TAGLINE}`,
+    title: `MentorReach: ${TAGLINE}`,
     description: DESCRIPTION,
     url: '/',
     locale: 'en_US',
   },
   twitter: {
     card: 'summary_large_image',
-    title: `MentorReach — ${TAGLINE}`,
+    title: `MentorReach: ${TAGLINE}`,
     description: DESCRIPTION,
   },
   /**

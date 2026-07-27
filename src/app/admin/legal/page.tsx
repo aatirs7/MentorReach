@@ -121,6 +121,18 @@ export default async function AdminLegalPage() {
                       )}
                     </div>
                     <p className="mt-1.5 text-sm text-slate">{DESCRIPTIONS[doc.key]}</p>
+
+                    {needsDecision ? (
+                      <div className="mt-3 rounded-lg border-l-2 border-[#8a6524] bg-sand px-4 py-3">
+                        <p className="font-display text-sm text-ink">Decision needed: how disputes are handled</p>
+                        <p className="mt-1.5 text-sm leading-relaxed text-slate">
+                          Choose one, with your lawyer: <span className="text-ink">Option A</span> — disputes
+                          go to the courts in Loudoun County, Virginia; or <span className="text-ink">Option B</span>{' '}
+                          — binding arbitration with a class-action waiver. The Terms and the Mentor Agreement
+                          must use the same choice.
+                        </p>
+                      </div>
+                    ) : null}
                   </div>
 
                   <div className="flex shrink-0 items-center gap-2">

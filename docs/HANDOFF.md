@@ -63,7 +63,7 @@ until the next build.
 | Neon Postgres | **Live** | Required; app will not boot without it |
 | Clerk | **Live (production instance)** | Google sign-in, claims editor, webhook all configured |
 | Resend | **Live** | `mentorreach.com` verified; sends from `hello@mentorreach.com` |
-| Vercel Blob | **Live** | Mentor headshot uploads |
+| Vercel Blob | **Not configured** | `BLOB_READ_WRITE_TOKEN` is NOT in the production env (verified 2026-07-27). Mentor headshot/resume uploads fail with the degradation error until a Blob store is linked to the Vercel project. An earlier version of this doc wrongly said "Live". |
 | Stripe Connect | **Not configured** | No keys yet. Blocks all payment and booking |
 | Zoom | **Not configured** | No Server-to-Server OAuth app yet. Blocks booking |
 | Cron | **Live** | `CRON_SECRET` set; `vercel.json` runs `/api/cron` hourly |

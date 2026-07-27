@@ -11,11 +11,11 @@ const ITEMS = [
   // Order requested by the founders; Task Board sits centrally. Dashboard leads as the
   // console home (it was the one tab not named in the request). `exact` on /ops keeps it
   // from lighting up for /ops/applications and /ops/expenses, which share the prefix.
-  { href: '/admin', label: 'Dashboard', exact: true },
+  { href: '/ops/applications', label: 'Applications' },
   { href: '/admin/mentors', label: 'Mentors' },
   { href: '/admin/students', label: 'Students' },
   { href: '/admin/users', label: 'Accounts' },
-  { href: '/ops/applications', label: 'Applications' },
+  { href: '/admin', label: 'Dashboard', exact: true },
   { href: '/ops/expenses', label: 'Expenses' },
   { href: '/ops', label: 'Task Board', exact: true },
   { href: '/admin/integrations', label: 'Integrations' },
