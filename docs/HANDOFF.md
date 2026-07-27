@@ -117,14 +117,18 @@ Book button is disabled with an honest reason rather than failing at checkout.
   Registered address 44056 Riverpoint Drive, Leesburg, VA 20176. Entity facts live in
   `src/lib/company.ts` (public record); the **EIN is deliberately not in the repo** (it is
   public on GitHub) — set `COMPANY_EIN` to surface it on `/admin/legal`.
-- Four legal docs bumped **1.0.0 → 1.1.0** with the LLC placeholders filled (entity name,
-  Virginia, registered address, Loudoun County, `support@mentorreach.com`, and the
-  commission-notice / non-circ terms). The 1.0.0 placeholder drafts are preserved under
-  `src/content/legal/archive/<key>/1.0.0.md`. Handbook unchanged (had no placeholders).
-- **Still open, on purpose:** the dispute-resolution clause (`[CHOOSE ONE, WITH COUNSEL:]`
-  courts vs. arbitration) in Terms §16 and Mentor Agreement §14 is left for counsel; the
-  `> DRAFT — review by an attorney before publishing` banner stays until that is resolved.
-  `/admin/legal` flags any doc still carrying a placeholder.
+- Four legal docs are at **1.2.0** (Terms, Privacy, Refunds, Mentor Agreement); Handbook is
+  **1.0.0** (never had placeholders). Version history, all pre-launch with no real
+  signatures: 1.0.0 placeholder drafts → 1.1.0 LLC placeholders filled → 1.2.0 dispute
+  clause resolved + draft banner simplified. Prior versions preserved under
+  `src/content/legal/archive/<key>/`.
+- **Dispute resolution decided (Option A):** exclusive jurisdiction in the state/federal
+  courts of Loudoun County, Virginia — NOT arbitration. Resolved in Terms §16 and Mentor
+  Agreement §14. The founders made this call directly (the clause was flagged "with
+  counsel"); it has not been through a formal attorney review.
+- Every doc still carries a minimal `> **DRAFT**` marker at the top. No placeholders remain.
+  An attorney review before real mentors sign is still advisable but not blocking; when
+  that's done, remove the DRAFT marker (one edit per file + a version bump).
 - Five documents at `/legal/*`, public and indexable, versioned with a content hash
 - **Students and mentors** accept Terms + Privacy via a required checkbox at role
   selection; `setRole()` writes both acceptance rows server-side

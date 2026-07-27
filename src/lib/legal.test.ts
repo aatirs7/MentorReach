@@ -19,27 +19,29 @@ import { LEGAL_KEYS, allDocuments, getDocument, keyForSlug } from './legal'
  * Anyone who signed the previous version is expected to re-sign — see docs/HANDOFF.md.
  */
 const LOCKED: Record<string, { version: string; hash: string }> = {
-  // 1.1.0 filled the LLC placeholders (entity name, Virginia, registered address,
-  // Loudoun County, support email) from the official formation documents. The 1.0.0
-  // placeholder drafts are preserved under src/content/legal/archive/<key>/1.0.0.md.
-  // The dispute-resolution clause ([CHOOSE ONE, WITH COUNSEL:]) is still open by design.
+  // Version history (all pre-launch, no real signatures):
+  //   1.0.0  initial placeholder drafts
+  //   1.1.0  LLC placeholders filled from the formation documents
+  //   1.2.0  dispute resolution resolved to Option A (Loudoun County courts) in terms +
+  //          mentor_agreement, and the verbose draft banner reduced to "**DRAFT**" across
+  //          all four. Prior versions preserved under src/content/legal/archive/<key>/.
   terms: {
-    version: '1.1.0',
-    hash: '77eb66e6578ff1a730fa7096007cfc1201e91c0317057c9e4bf6613391866b6f',
+    version: '1.2.0',
+    hash: '613bad677ddac7cb5536da7e631f12bbae85ac5ee6f800b1b43e6c44db0c0626',
   },
   privacy: {
-    version: '1.1.0',
-    hash: '4da951c4870c239cd306b83001b6342c1799efe7a67c4287ebf208802c01c79b',
+    version: '1.2.0',
+    hash: 'ac7beb6a74aaf462f0acb783810d8c1b35184a138119761ff6c5f5eeab4ec0f0',
   },
   refunds: {
-    version: '1.1.0',
-    hash: '40fe8fb51c6cc4f3fc4cb53645d438fbbd874cd2c30cfca0daa3dddef5af7363',
+    version: '1.2.0',
+    hash: '736005fd644b662072154adcd5937b8beacaf81151345d8d503bd68c9103db6d',
   },
   mentor_agreement: {
-    version: '1.1.0',
-    hash: '2d1d4b3b56fdec8e3e83e7e6f435a294c6e8586805fe241532d32631f734ff5e',
+    version: '1.2.0',
+    hash: '52c8a86b44b0c83531ab8ffd621b0f4ca680ba97a90c8bda4d4567cfac9bef99',
   },
-  // Unchanged — the handbook had no placeholders to fill.
+  // Unchanged — the handbook had no placeholders and no draft banner.
   mentor_handbook: {
     version: '1.0.0',
     hash: '0b433b7ea0db0fcc16dd3755a3bf5333f76ea40606d0ce978d1ffc8e0b867d89',

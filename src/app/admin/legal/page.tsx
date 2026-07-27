@@ -99,7 +99,7 @@ export default async function AdminLegalPage() {
       <ul className="mt-6 space-y-3">
         {docs.map((doc) => {
           const needsDecision = doc.content.includes('[CHOOSE ONE')
-          const isDraft = doc.content.includes('DRAFT.')
+          const isDraft = doc.content.includes('DRAFT')
           return (
             <li key={doc.key}>
               <Card className="border-line/20 bg-raised p-5">
@@ -113,9 +113,7 @@ export default async function AdminLegalPage() {
                           Needs a legal decision
                         </Badge>
                       ) : isDraft ? (
-                        <Badge className="border-slate/40 bg-transparent text-slate">
-                          Draft — attorney review
-                        </Badge>
+                        <Badge className="border-slate/40 bg-transparent text-slate">Draft</Badge>
                       ) : (
                         <Badge className="border-[#3f6b4f] bg-transparent text-[#3f6b4f]">Ready</Badge>
                       )}
